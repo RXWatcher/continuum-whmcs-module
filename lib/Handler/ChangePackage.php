@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Continuum\WhmcsModule\Handler;
 
-use Continuum\WhmcsModule\Config\ConfigurableOptionsRuleSet;
 use Continuum\WhmcsModule\Config\ProductConfig;
 use Continuum\WhmcsModule\ContinuumApiException;
 use Continuum\WhmcsModule\HookContext;
@@ -22,7 +21,6 @@ final class ChangePackage
     {
         try {
             $pc = ProductConfig::fromParams($params);
-            $rs = ConfigurableOptionsRuleSet::fromJson($pc->configurableOptionsMapJson());
         } catch (\InvalidArgumentException $e) {
             return 'Product config error: ' . $e->getMessage();
         }
@@ -33,7 +31,7 @@ final class ChangePackage
         }
 
         $svcOptions = $this->normaliseConfigurableOptions($params['configoptions'] ?? []);
-        $attrs = $this->ctx->mapper()->apply($pc, $rs, $svcOptions);
+        $attrs = $this->ctx->mapper()->apply($pc, $svcOptions);
 
         try {
             $this->ctx->client()->updateUser($userId, array_merge($attrs, $this->syncFields($params)));

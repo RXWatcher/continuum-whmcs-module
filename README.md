@@ -93,7 +93,6 @@ Set the module name to `continuum`, then configure:
 | Max playback quality | Blank for unrestricted, or `4k`, `1080p`, `720p`, `480p`. |
 | Create default profile on CreateAccount | Recommended: enabled. |
 | Allow customer-chosen username | Enables the optional `desired_username` field. |
-| Configurable options mapping (JSON) | Optional rules described below. |
 
 On the product's `Custom Fields` tab, add these required service custom fields:
 
@@ -108,62 +107,45 @@ If customer-chosen usernames are enabled, also add:
 | --- | --- | --- |
 | `desired_username` | Text Box | Yes |
 
-## Configurable Options Mapping
+## Configurable Options
 
-The configurable options mapping lets a WHMCS configurable option alter the
-Continuum attributes that are sent during create and reconcile operations.
+The module reads normal WHMCS configurable options by name. This lets admins use
+WHMCS-native checkboxes, dropdowns, radio buttons, and quantity fields instead
+of writing JSON.
 
-The field expects a JSON array of rule objects:
+Create configurable options in WHMCS with the names below. Names are
+case-insensitive, and punctuation is ignored.
 
-```json
-[
-  {
-    "option_name": "Extra Streams",
-    "match": "5",
-    "attribute": "max_streams",
-    "op": "add",
-    "value": 5
-  },
-  {
-    "option_name": "4K Streaming",
-    "match": "Yes",
-    "attribute": "max_playback_quality",
-    "op": "set",
-    "value": "4k"
-  },
-  {
-    "option_name": "Library Pack A",
-    "match": "Yes",
-    "attribute": "library_ids",
-    "op": "append",
-    "value": [3, 5]
-  }
-]
-```
-
-Supported operators:
-
-| Operator | Behavior |
-| --- | --- |
-| `set` | Replaces the attribute. If more than one matching rule sets the same attribute, the last match wins. |
-| `add` | Adds an integer to the current integer value. |
-| `append` | Appends integer library IDs and deduplicates them. |
-
-Supported attributes:
-
-| Attribute | Allowed Ops | Value Type |
+| Configurable Option Name | WHMCS Control | Behavior |
 | --- | --- | --- |
-| `role` | `set` | `user` or `admin` |
-| `library_ids` | `set`, `append` | Array of integers |
-| `max_streams` | `set`, `add` | Integer |
-| `max_transcodes` | `set`, `add` | Integer |
-| `max_profiles` | `set`, `add` | Integer |
-| `download_allowed` | `set` | Boolean |
-| `download_transcode_allowed` | `set` | Boolean |
-| `max_playback_quality` | `set` | `""`, `4k`, `1080p`, `720p`, or `480p` |
+| `Extra Streams` | Quantity or dropdown | Adds the selected number to `Max concurrent streams`. |
+| `Max Streams` | Quantity or dropdown | Replaces `Max concurrent streams`. |
+| `Extra Transcodes` | Quantity or dropdown | Adds the selected number to `Max concurrent transcodes`. |
+| `Max Transcodes` | Quantity or dropdown | Replaces `Max concurrent transcodes`. |
+| `Extra Profiles` | Quantity or dropdown | Adds the selected number to `Max profiles`. |
+| `Max Profiles` | Quantity or dropdown | Replaces `Max profiles`. |
+| `Downloads Allowed` | Checkbox or dropdown | Overrides download access. |
+| `Download Transcode Allowed` | Checkbox or dropdown | Overrides download-transcode access. |
+| `Max Playback Quality` | Dropdown or radio | Sets playback quality: unrestricted, 4k, 1080p, 720p, or 480p. |
+| `4K Streaming` | Checkbox | When checked, sets playback quality to 4k. |
+| `Library IDs` | Dropdown or radio | Appends library IDs from a value such as `3` or `3,5`. |
+| `Libraries` | Dropdown or radio | Same as `Library IDs`. |
+| `Library 3` | Checkbox | When checked, appends library ID `3`. |
+| `Library ID 3` | Checkbox | Same as `Library 3`. |
+| `Role` | Dropdown or radio | Sets role when the value is `user` or `admin`. |
 
-Mapping JSON is validated when module actions run. Invalid JSON or invalid rule
-values cause the WHMCS module action to return a clear configuration error.
+Examples:
+
+- Checkbox named `4K Streaming`, value `Yes`: sets `max_playback_quality` to
+  `4k`.
+- Quantity option named `Extra Streams`, value `2`: adds two streams to the
+  product's base stream limit.
+- Dropdown named `Library IDs`, selected value `3,5`: adds libraries `3` and
+  `5`.
+- Checkbox named `Library 7`, value `Yes`: adds library `7`.
+
+Values like `No`, `Off`, `False`, `0`, `None`, and empty strings are treated as
+disabled.
 
 ## Username Behavior
 

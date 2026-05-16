@@ -86,12 +86,6 @@ function continuum_ConfigOptions(): array
             'Description' => 'If yes, customers can pick their handle via the order-form "desired_username"'
                 . ' custom field. If no, every account gets a generated abcd232-style username.',
         ],
-        'configurable_options_map' => [
-            'FriendlyName' => 'Configurable options mapping (JSON)',
-            'Type' => 'textarea',
-            'Rows' => '8',
-            'Description' => 'JSON array of {option_name, match, attribute, op, value} rules. See README.',
-        ],
     ];
 }
 

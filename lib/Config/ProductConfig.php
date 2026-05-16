@@ -17,7 +17,6 @@ final class ProductConfig
     private string $maxPlaybackQuality;
     private bool $createDefaultProfile;
     private bool $allowUserChosenUsername;
-    private string $configurableOptionsMapJson;
 
     private function __construct(array $a)
     {
@@ -31,7 +30,6 @@ final class ProductConfig
         $this->maxPlaybackQuality = $a['maxPlaybackQuality'];
         $this->createDefaultProfile = $a['createDefaultProfile'];
         $this->allowUserChosenUsername = $a['allowUserChosenUsername'];
-        $this->configurableOptionsMapJson = $a['configurableOptionsMapJson'];
     }
 
     /** @param array<string, mixed> $params */
@@ -69,7 +67,6 @@ final class ProductConfig
             'maxPlaybackQuality' => self::readQuality($params),
             'createDefaultProfile' => self::readYesNo($params, 'configoption9', true),
             'allowUserChosenUsername' => self::readYesNo($params, 'configoption10', false),
-            'configurableOptionsMapJson' => (string)($params['configoption11'] ?? ''),
         ]);
     }
 
@@ -160,8 +157,4 @@ final class ProductConfig
         return $this->allowUserChosenUsername;
     }
 
-    public function configurableOptionsMapJson(): string
-    {
-        return $this->configurableOptionsMapJson;
-    }
 }
