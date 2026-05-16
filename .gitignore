@@ -1,8 +1,28 @@
+# Third-party dependency directories should not be committed if used locally.
 /vendor/
-/.phpunit.result.cache
+
+# Build output
 /dist/
+*.tar
 *.tar.gz
-.idea/
-.vscode/
-.claude/
+*.zip
+
+# Local test and tool caches
+/.phpunit.result.cache
+/.phpunit.cache/
+/.php-cs-fixer.cache
+/phpunit.xml
+/phpcs.xml
+/coverage/
+
+# Local/operator overrides
+/bad_words.txt
+/.env
+/.env.*
+
+# Editor and OS files
+/.idea/
+/.vscode/
+/.claude/
 .DS_Store
+Thumbs.db

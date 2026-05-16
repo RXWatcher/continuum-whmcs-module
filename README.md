@@ -1,226 +1,305 @@
-# continuum (WHMCS Provisioning Module)
+# Continuum WHMCS Provisioning Module
 
-A WHMCS Provisioning Module that creates, suspends, restores, and adjusts
-Continuum user accounts in response to WHMCS service-lifecycle events.
+Continuum WHMCS Provisioning Module connects WHMCS service lifecycle events to
+the Continuum admin API. It creates users, suspends and restores access,
+updates plan attributes, resets passwords, and gives staff a direct status view
+from the WHMCS service page.
 
-**Status:** v0.1. See design spec for architecture details.
+## Features
+
+- Create Continuum users when WHMCS provisions a service.
+- Suspend, unsuspend, and terminate services by toggling the Continuum user's
+  `enabled` state. Termination does not delete the Continuum user.
+- Reconcile Continuum attributes from WHMCS product settings and configurable
+  options.
+- Keep Continuum email and username aligned with WHMCS.
+- Link each WHMCS service to Continuum by stored user ID, with email and
+  username fallback recovery.
+- Support generated usernames or customer-chosen usernames.
+- Validate customer-chosen usernames for format, reserved names, blocked words,
+  and uniqueness.
+- Show Continuum status in the WHMCS admin service tab.
+- Show a customer-facing service panel in the WHMCS client area.
+- Optionally run a WHMCS daily cron hook to log basic drift.
 
 ## Requirements
 
-- WHMCS 8.x (tested against 8.6+)
-- PHP 8.0 or later
-- Composer (for installation)
-- Outbound HTTPS access from WHMCS to your Continuum origin
+- WHMCS 8.x.
+- PHP 8.0 or newer.
+- PHP JSON extension.
+- PHP cURL extension, or `allow_url_fopen` enabled for HTTPS streams.
+- Outbound HTTPS access from WHMCS to the Continuum server.
+- A Continuum admin API key.
 
-## Install
+Composer is not required. The module is plain PHP and ships with its own small
+autoload file.
 
-1. Extract the release tarball to your WHMCS install:
-   ```
-   tar xzf continuum-whmcs-module-x.y.z.tar.gz -C <whmcs-root>/modules/servers/
-   ```
+## Installation
 
-2. From the extracted directory, install runtime dependencies:
-   ```
-   cd <whmcs-root>/modules/servers/continuum
-   composer install --no-dev --optimize-autoloader
-   ```
+Download the release archive named like:
 
-## Setup (one-time per Continuum instance)
+```sh
+continuum-whmcs-module-vX.Y.Z.tar.gz
+```
 
-### 1. Generate a Continuum admin API key
+Extract it into the WHMCS server modules directory as `continuum`:
 
-In Continuum: **Admin → API Keys → Create new key** with role `admin`. Copy the key.
+```sh
+mkdir -p /path/to/whmcs/modules/servers/continuum
+tar -xzf continuum-whmcs-module-vX.Y.Z.tar.gz -C /path/to/whmcs/modules/servers/continuum
+```
 
-### 2. Add a Server in WHMCS
+The final path should contain:
 
-**Setup → Products → Servers → Add New Server.**
+```text
+/path/to/whmcs/modules/servers/continuum/continuum.php
+/path/to/whmcs/modules/servers/continuum/hooks.php
+/path/to/whmcs/modules/servers/continuum/autoload.php
+```
+
+## WHMCS Server Setup
+
+In Continuum, create an admin API key.
+
+In WHMCS, go to `System Settings -> Servers -> Add New Server` and create a
+server with these values:
 
 | Field | Value |
-|---|---|
-| Name | "Continuum" (or whatever you call it) |
-| Hostname | `continuum.example.com` (no scheme) |
-| Secure | check the box (https) |
-| Username | anything (unused) |
-| Password / Access Hash | paste the API key from step 1 |
-| Module | continuum |
+| --- | --- |
+| Name | Any descriptive name, for example `Continuum` |
+| Hostname | Your Continuum hostname, without `https://` |
+| Secure | Enabled for HTTPS |
+| Username | Unused; any value is acceptable |
+| Password / Access Hash | Continuum admin API key |
+| Module | `continuum` |
 
-### 3. Per-product setup
+## Product Setup
 
-For each WHMCS product that should provision Continuum accounts:
+For each WHMCS product that should provision Continuum accounts, open:
 
-**Setup → Products → edit product → Module Settings tab.**
+`System Settings -> Products/Services -> Edit Product -> Module Settings`
 
-Choose **Module Name: continuum**. The form below shows:
+Set the module name to `continuum`, then configure:
 
-| Field | Meaning |
-|---|---|
-| Role | `user` (most cases) or `admin` |
-| Library IDs | comma-separated Continuum library IDs the customer can access |
-| Max concurrent streams | integer |
-| Max concurrent transcodes | integer |
-| Max profiles | integer |
-| Downloads allowed | yes/no |
-| Download transcode allowed | yes/no |
-| Max playback quality | blank (unrestricted), 4k, 1080p, 720p, or 480p |
-| Create default profile on CreateAccount | yes (recommended) — so first login isn't confusing |
-| Allow customer-chosen username | yes/no (default no — every account gets a generated handle) |
-| Configurable options mapping (JSON) | see below |
+| Field | Description |
+| --- | --- |
+| Role | Continuum role, usually `user`; `admin` is also accepted. |
+| Library IDs | Comma-separated Continuum library IDs, for example `1,3,5`. |
+| Max concurrent streams | Integer stream limit. |
+| Max concurrent transcodes | Integer transcode limit. |
+| Max profiles | Integer profile limit. |
+| Downloads allowed | Whether downloads are allowed. |
+| Download transcode allowed | Whether download transcoding is allowed. |
+| Max playback quality | Blank for unrestricted, or `4k`, `1080p`, `720p`, `480p`. |
+| Create default profile on CreateAccount | Recommended: enabled. |
+| Allow customer-chosen username | Enables the optional `desired_username` field. |
+| Configurable options mapping (JSON) | Optional rules described below. |
 
-### 4. Service custom fields (required)
+On the product's `Custom Fields` tab, add these required service custom fields:
 
-The module stores its linkage and cache in two WHMCS service custom fields.
-**Both are required on every product** that uses this module. Without them,
-`CreateAccount` will fail with a clear error.
-
-**Setup → Products → edit product → Custom Fields tab.** Add:
-
-| Name | Type | Show on Order Form |
-|---|---|---|
+| Field Name | Type | Show on Order Form |
+| --- | --- | --- |
 | `continuum_user_id` | Text Box | No |
 | `continuum_library_names_cache` | Text Box | No |
 
-If the product uses customer-chosen usernames (`allow_user_chosen_username = yes`),
-also add a third optional field:
+If customer-chosen usernames are enabled, also add:
 
-| Name | Type | Show on Order Form |
-|---|---|---|
+| Field Name | Type | Show on Order Form |
+| --- | --- | --- |
 | `desired_username` | Text Box | Yes |
 
-### How linkage works
+## Configurable Options Mapping
 
-Each WHMCS service is linked to a Continuum user through **three** signals,
-checked in order on every hook:
+The configurable options mapping lets a WHMCS configurable option alter the
+Continuum attributes that are sent during create and reconcile operations.
 
-1. The `continuum_user_id` custom field (the canonical, stable key — set by
-   CreateAccount and re-aligned automatically if it drifts).
-2. The WHMCS client's email (lowercased before lookup, since Continuum
-   stores emails case-sensitively).
-3. The WHMCS service username (the one written back to the service record
-   at CreateAccount time).
-
-A single-field rename on either side does not break the link — the next
-hook re-discovers the user via the surviving signal and rewrites the stale
-field. The link only breaks if all three signals change on one side
-without being mirrored on the other. Every successful hook also pushes the
-WHMCS email and username back to Continuum, so WHMCS is the source of
-truth.
-
-## Configurable options mapping
-
-The "Configurable options mapping" field on a product is a JSON array of rules
-that modify Continuum attributes based on WHMCS configurable options the
-customer selects at checkout. Example:
+The field expects a JSON array of rule objects:
 
 ```json
 [
-  {"option_name": "Extra Streams", "match": "5", "attribute": "max_streams", "op": "add", "value": 5},
-  {"option_name": "Extra Streams", "match": "10", "attribute": "max_streams", "op": "add", "value": 10},
-  {"option_name": "4K Streaming",  "match": "Yes", "attribute": "max_playback_quality", "op": "set", "value": "4k"},
-  {"option_name": "Library Pack A", "match": "Yes", "attribute": "library_ids", "op": "append", "value": [3, 5]}
+  {
+    "option_name": "Extra Streams",
+    "match": "5",
+    "attribute": "max_streams",
+    "op": "add",
+    "value": 5
+  },
+  {
+    "option_name": "4K Streaming",
+    "match": "Yes",
+    "attribute": "max_playback_quality",
+    "op": "set",
+    "value": "4k"
+  },
+  {
+    "option_name": "Library Pack A",
+    "match": "Yes",
+    "attribute": "library_ids",
+    "op": "append",
+    "value": [3, 5]
+  }
 ]
 ```
 
-### Operators
+Supported operators:
 
-- `set` — overwrite (last-write-wins if multiple set rules hit the same attribute).
-- `add` — add to the running integer (works on max_streams, max_transcodes, max_profiles).
-- `append` — extend the array, deduplicating (works on library_ids).
+| Operator | Behavior |
+| --- | --- |
+| `set` | Replaces the attribute. If more than one matching rule sets the same attribute, the last match wins. |
+| `add` | Adds an integer to the current integer value. |
+| `append` | Appends integer library IDs and deduplicates them. |
 
-### Attribute / op / value-type matrix
+Supported attributes:
 
-| Attribute | Allowed ops | value must be |
-|---|---|---|
+| Attribute | Allowed Ops | Value Type |
+| --- | --- | --- |
 | `role` | `set` | `user` or `admin` |
-| `library_ids` | `set`, `append` | array of integers |
-| `max_streams` | `set`, `add` | integer |
-| `max_transcodes` | `set`, `add` | integer |
-| `max_profiles` | `set`, `add` | integer |
-| `download_allowed` | `set` | boolean (`true` / `false`) |
-| `download_transcode_allowed` | `set` | boolean |
-| `max_playback_quality` | `set` | string (`""`, `4k`, `1080p`, `720p`, `480p`) |
+| `library_ids` | `set`, `append` | Array of integers |
+| `max_streams` | `set`, `add` | Integer |
+| `max_transcodes` | `set`, `add` | Integer |
+| `max_profiles` | `set`, `add` | Integer |
+| `download_allowed` | `set` | Boolean |
+| `download_transcode_allowed` | `set` | Boolean |
+| `max_playback_quality` | `set` | `""`, `4k`, `1080p`, `720p`, or `480p` |
 
-The form rejects malformed mappings on save with a clear error.
+Mapping JSON is validated when module actions run. Invalid JSON or invalid rule
+values cause the WHMCS module action to return a clear configuration error.
 
-## Admin Service Actions
+## Username Behavior
 
-On the admin's service-detail page for any Continuum-backed service:
+By default, the module generates usernames in the form `abcd123`: four
+lowercase letters followed by three digits.
 
-- **Continuum status tab** — shows the user's current Continuum state
-  (id, email, enabled, role, libraries, stream limit) and a
-  **Open in Continuum →** link that opens the Continuum admin user page
-  in a new tab. From there you can edit attributes, view sessions, or
-  click Continuum's in-UI **Impersonate** button (which is admin-session-bound;
-  the WHMCS module cannot drive it via API key).
-- **Reconcile from WHMCS** button — re-pushes the product config +
-  configurable-options to Continuum. Use after manual edits in Continuum
-  or restores from backup.
-- **Reset password** button — generates a strong random password, pushes
-  to Continuum, writes back to the WHMCS service password, fires WHMCS's
-  password-reset email.
+If `Allow customer-chosen username` is enabled and the product has a
+`desired_username` custom field, customers may provide a username during order.
+The module validates:
 
-## Optional: daily drift detection
+- 3 to 32 characters.
+- Lowercase letters, digits, underscores, and hyphens only.
+- Not a reserved system name.
+- Not present in the blocked-word list.
+- Not already used by another Continuum user.
 
-Set the server-level config flag `reconcile_daily: yes` to have WHMCS's
-`DailyCronJob` walk all active Continuum-backed services and log drifts to
-**Utility → Logs → Activity Log**. It does NOT auto-correct; that's still
-the admin's job via "Reconcile from WHMCS" per service.
+To override the blocked-word list, place a `bad_words.txt` file next to
+`continuum.php` in the installed module directory. The override replaces the
+default list in `data/bad_words.default.txt`.
+
+## Linkage And Recovery
+
+Each WHMCS service is linked to Continuum through three signals, checked in
+this order:
+
+1. `continuum_user_id` service custom field.
+2. WHMCS client email, lowercased.
+3. WHMCS service username.
+
+When a hook finds a user through a fallback signal, it repairs
+`continuum_user_id`. Successful updates also push the WHMCS email and service
+username back to Continuum, making WHMCS the source of truth for those fields.
+
+## Admin Tools
+
+On a Continuum-backed WHMCS service, staff can use:
+
+- `Continuum status` tab: shows the Continuum user ID, email, enabled state,
+  role, libraries, stream limit, and an admin deep link.
+- `Reconcile from WHMCS`: pushes the current WHMCS product and configurable
+  option state to Continuum.
+- `Reset Password`: generates a strong password, updates Continuum, and writes
+  the new password back to the WHMCS service.
+
+## Client Area
+
+The module renders `templates/clientarea.tpl` for the customer service page. It
+shows service state, stream limit, playback quality, library names, last-seen
+time, and a sign-in link to the Continuum server.
+
+## Daily Drift Logging
+
+`hooks.php` registers a `DailyCronJob` hook. In the current release it scans
+active services on Continuum servers and logs basic enabled-state drift to the
+WHMCS activity log.
+
+This is logging only. It does not automatically fix drift. Staff should use
+`Reconcile from WHMCS` on the affected service when correction is needed.
 
 ## Troubleshooting
 
-### "Custom field 'continuum_user_id' is not declared on this product"
+### Custom field is not declared
 
-You skipped Step 4 above. Add the two service custom fields to this product.
+Add the required custom fields to the WHMCS product:
 
-### "No Continuum user is linked to this service" on a service that used to work
+- `continuum_user_id`
+- `continuum_library_names_cache`
 
-The customer's Continuum user was likely deleted out-of-band, or both their
-email and service username changed simultaneously on the Continuum side
-without WHMCS knowing. Either:
+Then retry the module action.
 
-1. Recreate the user manually in Continuum with the WHMCS-side email or
-   username, then click **Reconcile from WHMCS** on the service detail page.
-2. Or correct the custom field `continuum_user_id` on the service directly
-   to point at the right Continuum user, then Reconcile.
+### No Continuum user is linked
 
-### "Continuum returned a server error"
+The Continuum user may have been deleted, or all linkage signals may have
+changed outside WHMCS. Recreate or correct the Continuum user so that either
+the email or username matches WHMCS, then run `Reconcile from WHMCS`.
 
-Continuum host is responding with a 5xx. Check the Module Log at
-**Utility → Logs → Module Log** for the full response body.
+If you know the correct Continuum user ID, you can also set
+`continuum_user_id` on the WHMCS service custom field and reconcile.
 
-### "Username namespace congested — 5 collisions in a row"
+### Continuum returned a server error
 
-This is statistically impossible at any realistic scale (P ≈ 3×10⁻¹⁴ at 1M users).
-If you see it, you've probably hit a Continuum-side username-uniqueness bug.
-Contact support.
+Continuum returned HTTP 5xx. Check:
 
-## Customer-chosen usernames
+- WHMCS Module Log.
+- WHMCS Activity Log.
+- Continuum server logs.
+- The configured Continuum hostname and API key.
 
-When the per-product flag `allow_user_chosen_username = yes`, the order form
-captures `desired_username` (declared as a service custom field) and the
-module routes it through:
+### Username is already taken
 
-1. Format check (3-32 chars; lowercase letters, digits, underscore, hyphen).
-2. Reserved-name check (`admin`, `root`, etc., plus operator additions).
-3. Profanity check against `data/bad_words.default.txt` (or operator's
-   `bad_words.txt` next to `continuum.php` if present — replaces, doesn't
-   merge with, the default).
-4. Uniqueness pre-check via Continuum's user list.
-5. Live `createUser` against Continuum — a 409 here surfaces as "already
-   taken" without auto-retry. If the customer leaves the field blank,
-   the module falls back to the auto-generated 4-letter + 3-digit handle.
+Choose another username. For generated usernames, the module retries collisions
+up to five times.
+
+## Building A Release Archive
+
+The module has no Composer build step. Create a release archive from a clean
+checkout:
+
+```sh
+mkdir -p dist
+tar \
+  --exclude='./.git' \
+  --exclude='./dist' \
+  --exclude='./.gitignore' \
+  --exclude='./.claude' \
+  --exclude='./.env' \
+  --exclude='./.env.*' \
+  --exclude='./bad_words.txt' \
+  --exclude='./.phpunit.result.cache' \
+  -czf dist/continuum-whmcs-module-vX.Y.Z.tar.gz .
+```
+
+Upload the resulting archive as the GitHub release asset.
 
 ## Development
 
-```
-composer install
-composer test    # PHPUnit
-composer lint    # PSR-12 codesniffer
+The public module is dependency-free. Basic syntax validation can be run with
+the PHP CLI:
+
+```sh
+find . -path './.git' -prune -o -path './dist' -prune -o -name '*.php' -print -exec php -l {} \;
 ```
 
-Tests use Guzzle's `MockHandler` and a small WHMCS function-stub registry
-defined in `tests/bootstrap.php` and `tests/WhmcsFunctionStub.php`. No
-real WHMCS, no real Continuum.
+Release validation should still include a staging WHMCS install before
+publishing the packaged archive.
+
+## Security Notes
+
+- Store the Continuum admin API key only in the WHMCS server password/access
+  hash field.
+- Use HTTPS for Continuum.
+- Keep `bad_words.txt`, local environment files, and release archives out of
+  git.
+- Treat WHMCS module logs as sensitive because failed API calls may contain
+  operational context.
 
 ## License
 
-Proprietary.
+Proprietary. All rights reserved.

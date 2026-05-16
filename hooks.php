@@ -8,7 +8,7 @@ use Continuum\WhmcsModule\Config\ServerConfig;
 use Continuum\WhmcsModule\DailyReconciler;
 use WHMCS\Database\Capsule;
 
-require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/autoload.php';
 
 add_hook('DailyCronJob', 1, function ($vars) {
     // Walk all Continuum-backed servers with reconcile_daily enabled.

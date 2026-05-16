@@ -4,9 +4,7 @@
  * WHMCS Provisioning Module: continuum
  *
  * Translates WHMCS service-lifecycle hooks into calls against
- * Continuum's admin HTTP API. See spec at
- * docs/superpowers/specs/2026-05-12-whmcs-provisioning-module-design.md
- * in the Continuum repo.
+ * Continuum's admin HTTP API.
  */
 
 declare(strict_types=1);
@@ -15,7 +13,7 @@ if (!defined('WHMCS')) {
     die('This file cannot be accessed directly');
 }
 
-require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/autoload.php';
 
 use Continuum\WhmcsModule\Hooks;
 

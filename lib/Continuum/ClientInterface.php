@@ -6,7 +6,6 @@ namespace Continuum\WhmcsModule\Continuum;
 
 /**
  * Boundary between this module and Continuum's admin HTTP API.
- * Concrete implementation is GuzzleClient. Tests mock this interface.
  */
 interface ClientInterface
 {

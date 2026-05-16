@@ -36,7 +36,7 @@ final class ConfigurableOptionsRuleSet
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new \InvalidArgumentException('Malformed JSON: ' . json_last_error_msg());
         }
-        if (!is_array($decoded) || (count($decoded) > 0 && !array_is_list($decoded))) {
+        if (!is_array($decoded) || (count($decoded) > 0 && !self::isList($decoded))) {
             throw new \InvalidArgumentException('configurable_options_map must be a JSON array of rule objects');
         }
 
@@ -45,6 +45,12 @@ final class ConfigurableOptionsRuleSet
             $rules[] = self::validateRule($idx, $raw);
         }
         return new self($rules);
+    }
+
+    /** @param array<mixed> $value */
+    private static function isList(array $value): bool
+    {
+        return array_keys($value) === range(0, count($value) - 1);
     }
 
     private static function validateRule(int $idx, mixed $raw): ConfigurableOptionsRule

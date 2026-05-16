@@ -6,25 +6,20 @@ namespace Continuum\WhmcsModule;
 
 use Continuum\WhmcsModule\Config\ServerConfig;
 use Continuum\WhmcsModule\Continuum\ClientInterface;
-use GuzzleHttp\Client as GuzzleClient;
-use GuzzleHttp\Exception\GuzzleException;
-use Psr\Http\Message\ResponseInterface;
 
 final class Client implements ClientInterface
 {
+    private const TIMEOUT_SECONDS = 30;
+    private const CONNECT_TIMEOUT_SECONDS = 10;
+
     private ServerConfig $cfg;
-    private GuzzleClient $http;
     /** @var array<int, array<string, mixed>>|null */
     private ?array $userListCache = null;
     private bool $warnedAboveThreshold = false;
 
-    public function __construct(ServerConfig $cfg, ?GuzzleClient $http = null)
+    public function __construct(ServerConfig $cfg)
     {
         $this->cfg = $cfg;
-        $this->http = $http ?? new GuzzleClient([
-            'timeout' => 30,
-            'connect_timeout' => 10,
-        ]);
     }
 
     /** @param array<string, mixed> $payload */
@@ -82,50 +77,32 @@ final class Client implements ClientInterface
         if ($this->userListCache !== null) {
             return $this->userListCache;
         }
+
         $all = [];
         $path = '/api/v1/admin/users';
         while ($path !== null) {
-            try {
-                $res = $this->http->request('GET', $this->cfg->baseUrl() . $path, [
-                    'headers' => [
-                        'Authorization' => 'Bearer ' . $this->cfg->apiKey(),
-                        'Accept' => 'application/json',
-                    ],
-                    'http_errors' => false,
-                ]);
-            } catch (GuzzleException | \RuntimeException $e) {
-                throw new ContinuumApiException(
-                    'Network error calling Continuum: ' . $e->getMessage(),
-                    0,
-                    null,
-                    $e
-                );
+            $res = $this->rawRequest('GET', $path, null);
+            $decoded = $res['body'] === '' ? null : json_decode($res['body'], true);
+            if ($res['status'] < 100) {
+                throw new ContinuumApiException('Network error calling Continuum: no HTTP status returned');
             }
-            $status = $res->getStatusCode();
-            $body = (string)$res->getBody();
-            $decoded = $body === '' ? null : json_decode($body, true);
-            if ($status >= 400) {
-                $msg = is_array($decoded) && isset($decoded['message'])
-                    ? $decoded['message']
-                    : "Continuum returned HTTP {$status}";
-                throw new ContinuumApiException(
-                    "Continuum API error: {$msg}",
-                    $status,
-                    is_array($decoded) ? $decoded : null
-                );
+            if ($res['status'] >= 400) {
+                $this->throwApiError($res['status'], $decoded);
             }
             if (!is_array($decoded)) {
                 break;
             }
             $all = array_merge($all, $decoded);
-            $path = $this->nextPagePath($res->getHeaderLine('Link'));
+            $path = $this->nextPagePath($this->headerLine($res['headers'], 'Link'));
         }
+
         if (count($all) > 5000 && !$this->warnedAboveThreshold) {
             $this->warnedAboveThreshold = true;
             if (function_exists('logActivity')) {
                 logActivity('continuum: user list >5000 — consider adding email-filter endpoint on Continuum side');
             }
         }
+
         $this->userListCache = $all;
         return $all;
     }
@@ -155,45 +132,172 @@ final class Client implements ClientInterface
     /** @param array<string, mixed>|null $payload */
     private function jsonRequest(string $method, string $path, ?array $payload): array
     {
-        $opts = [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $this->cfg->apiKey(),
-                'Accept' => 'application/json',
-            ],
-            'http_errors' => false,
-        ];
-        if ($payload !== null) {
-            $opts['headers']['Content-Type'] = 'application/json';
-            $opts['body'] = json_encode($payload, JSON_UNESCAPED_SLASHES);
+        $body = $payload === null ? null : json_encode($payload, JSON_UNESCAPED_SLASHES);
+        if ($body === false) {
+            throw new \RuntimeException('Failed to encode Continuum API request as JSON');
         }
 
-        try {
-            /** @var ResponseInterface $res */
-            $res = $this->http->request($method, $this->cfg->baseUrl() . $path, $opts);
-        } catch (GuzzleException | \RuntimeException $e) {
-            throw new ContinuumApiException(
-                "Network error calling Continuum: " . $e->getMessage(),
-                0,
-                null,
-                $e
-            );
+        $res = $this->rawRequest($method, $path, $body);
+        $decoded = $res['body'] === '' ? null : json_decode($res['body'], true);
+
+        if ($res['status'] < 100) {
+            throw new ContinuumApiException('Network error calling Continuum: no HTTP status returned');
         }
-
-        $status = $res->getStatusCode();
-        $body = (string)$res->getBody();
-        $decoded = $body === '' ? null : json_decode($body, true);
-
-        if ($status >= 400) {
-            $msg = is_array($decoded) && isset($decoded['message'])
-                ? $decoded['message']
-                : "Continuum returned HTTP {$status}";
-            throw new ContinuumApiException(
-                "Continuum API error: {$msg}",
-                $status,
-                is_array($decoded) ? $decoded : null
-            );
+        if ($res['status'] >= 400) {
+            $this->throwApiError($res['status'], $decoded);
         }
 
         return is_array($decoded) ? $decoded : [];
+    }
+
+    /**
+     * @return array{status: int, body: string, headers: array<string, string[]>}
+     */
+    private function rawRequest(string $method, string $path, ?string $body): array
+    {
+        if (function_exists('curl_init')) {
+            return $this->curlRequest($method, $path, $body);
+        }
+
+        return $this->streamRequest($method, $path, $body);
+    }
+
+    /**
+     * @return array{status: int, body: string, headers: array<string, string[]>}
+     */
+    private function curlRequest(string $method, string $path, ?string $body): array
+    {
+        $ch = curl_init($this->cfg->baseUrl() . $path);
+        if ($ch === false) {
+            throw new ContinuumApiException('Network error calling Continuum: failed to initialise cURL');
+        }
+
+        $headers = $this->requestHeaders($body !== null);
+        curl_setopt_array($ch, [
+            CURLOPT_CUSTOMREQUEST => $method,
+            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HEADER => true,
+            CURLOPT_TIMEOUT => self::TIMEOUT_SECONDS,
+            CURLOPT_CONNECTTIMEOUT => self::CONNECT_TIMEOUT_SECONDS,
+        ]);
+        if ($body !== null) {
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+        }
+
+        $raw = curl_exec($ch);
+        if ($raw === false) {
+            $err = curl_error($ch);
+            curl_close($ch);
+            throw new ContinuumApiException('Network error calling Continuum: ' . $err);
+        }
+
+        $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        $headerSize = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+        curl_close($ch);
+
+        return [
+            'status' => $status,
+            'headers' => $this->parseHeaders(substr($raw, 0, $headerSize)),
+            'body' => substr($raw, $headerSize),
+        ];
+    }
+
+    /**
+     * @return array{status: int, body: string, headers: array<string, string[]>}
+     */
+    private function streamRequest(string $method, string $path, ?string $body): array
+    {
+        if (!ini_get('allow_url_fopen')) {
+            throw new ContinuumApiException(
+                'Network error calling Continuum: enable PHP cURL or allow_url_fopen'
+            );
+        }
+
+        $opts = [
+            'http' => [
+                'method' => $method,
+                'header' => implode("\r\n", $this->requestHeaders($body !== null)),
+                'ignore_errors' => true,
+                'timeout' => self::TIMEOUT_SECONDS,
+            ],
+        ];
+        if ($body !== null) {
+            $opts['http']['content'] = $body;
+        }
+
+        $previousError = error_get_last();
+        $responseBody = @file_get_contents($this->cfg->baseUrl() . $path, false, stream_context_create($opts));
+        if ($responseBody === false) {
+            $err = error_get_last();
+            $message = is_array($err) && $err !== $previousError ? (string)$err['message'] : 'request failed';
+            throw new ContinuumApiException('Network error calling Continuum: ' . $message);
+        }
+
+        /** @var array<int, string> $http_response_header */
+        $headers = $http_response_header ?? [];
+
+        return [
+            'status' => $this->statusFromHeaders($headers),
+            'headers' => $this->parseHeaders(implode("\r\n", $headers)),
+            'body' => $responseBody,
+        ];
+    }
+
+    /** @return string[] */
+    private function requestHeaders(bool $hasBody): array
+    {
+        $headers = [
+            'Authorization: Bearer ' . $this->cfg->apiKey(),
+            'Accept: application/json',
+        ];
+        if ($hasBody) {
+            $headers[] = 'Content-Type: application/json';
+        }
+        return $headers;
+    }
+
+    /** @return array<string, string[]> */
+    private function parseHeaders(string $raw): array
+    {
+        $headers = [];
+        foreach (preg_split('/\r\n|\n|\r/', $raw) ?: [] as $line) {
+            if ($line === '' || !str_contains($line, ':')) {
+                continue;
+            }
+            [$name, $value] = explode(':', $line, 2);
+            $headers[strtolower(trim($name))][] = trim($value);
+        }
+        return $headers;
+    }
+
+    /** @param array<int, string> $headers */
+    private function statusFromHeaders(array $headers): int
+    {
+        $status = 0;
+        foreach ($headers as $line) {
+            if (preg_match('/^HTTP\/\S+\s+(\d{3})\b/', $line, $m)) {
+                $status = (int)$m[1];
+            }
+        }
+        return $status;
+    }
+
+    /** @param array<string, string[]> $headers */
+    private function headerLine(array $headers, string $name): string
+    {
+        return implode(', ', $headers[strtolower($name)] ?? []);
+    }
+
+    private function throwApiError(int $status, mixed $decoded): void
+    {
+        $msg = is_array($decoded) && isset($decoded['message'])
+            ? $decoded['message']
+            : "Continuum returned HTTP {$status}";
+        throw new ContinuumApiException(
+            "Continuum API error: {$msg}",
+            $status,
+            is_array($decoded) ? $decoded : null
+        );
     }
 }
