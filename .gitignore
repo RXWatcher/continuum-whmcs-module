@@ -1,0 +1,8 @@
+/vendor/
+/.phpunit.result.cache
+/dist/
+*.tar.gz
+.idea/
+.vscode/
+.claude/
+.DS_Store
