@@ -134,16 +134,23 @@ any edit you make (including ticking *Show on Order Form* for
 ## Configurable Options
 
 The module reads normal WHMCS configurable options by name, so admins use
-WHMCS-native checkboxes, dropdowns, radio buttons, and quantity fields. Names
-are case-insensitive and punctuation is ignored.
+WHMCS-native checkboxes, dropdowns, radio buttons, and quantity fields. Name
+matching is case-insensitive and any punctuation/separators are treated as
+spaces — so `Library IDs`, `library-ids`, and `library_ids` all match, but a
+run-together `LibraryIDs` (no separator) does **not**.
 
 ### One-click scaffolding
 
 On any Continuum-backed service, the **Scaffold Configurable Options** admin
-button creates a `Continuum Options` group containing the recognized options
-below (plus a per-library opt-in checkbox for each live Continuum library),
-**with `0.00` pricing in every currency**, and links it to every continuum
-product. It is idempotent: existing options and any prices you set are never
+button creates a `Continuum Options` group with a curated starter set —
+`Extra Streams`, `Extra Transcodes`, `Extra Profiles` (quantity),
+`4K Streaming`, `Downloads Allowed`, `Download Transcode Allowed` (yes/no),
+`Max Playback Quality` and `Role` (dropdown), plus a `Library N` opt-in
+checkbox for each live Continuum library — **with `0.00` pricing in every
+currency**, and links it to every continuum product. (It does not create every
+recognized name below — e.g. the `Max Streams`/`Max Transcodes`/`Max Profiles`
+overrides and the `Library IDs`/`Libraries` dropdowns are left for you to add
+if wanted.) It is idempotent: existing options and any prices you set are never
 overwritten. You only need to set prices, then the group is live. (Configurable
 options are intentionally not auto-created on lifecycle hooks — they are
 optional upsells whose pricing the module must not invent.)
@@ -162,9 +169,9 @@ optional upsells whose pricing the module must not invent.)
 | `Download Transcode Allowed` | Checkbox or dropdown | Overrides download-transcode access (still forced off if downloads are off). |
 | `Max Playback Quality` | Dropdown or radio | Sets playback quality. Continuum enforces only unrestricted, `1080p`, or `4k`; `720p`/`480p` map to `1080p`. |
 | `4K Streaming` | Checkbox | When checked, sets playback quality to 4k. |
-| `Library IDs` | Dropdown or radio | Appends library IDs from a value such as `3` or `3,5`. |
-| `Libraries` | Dropdown or radio | Same as `Library IDs`. |
-| `Library 3` | Checkbox | When checked, appends library ID `3`. |
+| `Library IDs` | Dropdown / radio / quantity | Adds **every number found in the selected value** as a library ID. Dropdown/radio is single-select, so one choice only contributes the IDs in that one value (e.g. a sub-option labelled `3,5` → libraries 3 and 5; `Movies (3)` → library 3). |
+| `Libraries` | Dropdown / radio / quantity | Same as `Library IDs` (aliases: `Library Access`, `Library Pack`). |
+| `Library 3` | Checkbox | When checked, appends library ID `3`. **Use these for per-library opt-in** — one checkbox per library lets customers enable libraries individually. |
 | `Library ID 3` | Checkbox | Same as `Library 3`. |
 | `Role` | Dropdown or radio | Sets role when the value is `user` or `admin`. |
 
@@ -178,8 +185,14 @@ Examples:
 
 - Checkbox `4K Streaming` = `Yes`: sets `max_playback_quality` to `4k`.
 - Quantity `Extra Streams` = `2`: adds two streams to the product base.
-- Dropdown `Library IDs` = `3,5`: adds libraries `3` and `5`.
-- Checkbox `Library 7` = `Yes`: adds library `7`.
+- Checkbox `Library 7` = `Yes`: adds library `7` (the per-library opt-in pattern).
+- Dropdown `Libraries` with a sub-option labelled `Movies & Anime (3,5)`
+  selected: adds libraries `3` and `5` (the digits in that one chosen value).
+
+To let customers pick libraries individually, create one `Library N` checkbox
+per library — a single dropdown/radio can only select one value. Caveat: for
+`Library IDs`/`Libraries`, **any** digits in the chosen value are treated as
+library IDs, so don't put unrelated numbers in those option/value labels.
 
 Values like `No`, `Off`, `False`, `0`, `None`, and empty strings are disabled.
 
