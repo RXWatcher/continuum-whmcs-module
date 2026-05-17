@@ -11,6 +11,7 @@ use Continuum\WhmcsModule\Handler\ChangePackage;
 use Continuum\WhmcsModule\Handler\ChangePassword;
 use Continuum\WhmcsModule\Handler\ClientArea;
 use Continuum\WhmcsModule\Handler\CreateAccount;
+use Continuum\WhmcsModule\Handler\ScaffoldOptions;
 use Continuum\WhmcsModule\Handler\SetEnabled;
 use Continuum\WhmcsModule\Handler\TestConnection;
 
@@ -88,6 +89,16 @@ final class Hooks
     public function adminReconcile(array $params): string
     {
         return $this->changePackage($params);
+    }
+
+    public function adminScaffoldOptions(array $params): string
+    {
+        try {
+            $ctx = $this->context($params);
+        } catch (\InvalidArgumentException $e) {
+            return 'Configuration error: ' . $e->getMessage();
+        }
+        return (new ScaffoldOptions($ctx))->handle();
     }
 
     public function adminResetPassword(array $params): string

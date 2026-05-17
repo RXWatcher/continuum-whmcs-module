@@ -149,12 +149,18 @@ function continuum_AdminCustomButtonArray(): array
     return [
         'Reconcile from WHMCS' => 'admin_reconcile',
         'Reset Password' => 'admin_reset_password',
+        'Scaffold Configurable Options' => 'admin_scaffold_options',
     ];
 }
 
 function continuum_admin_reconcile(array $params): string
 {
     return (new Hooks())->adminReconcile($params);
+}
+
+function continuum_admin_scaffold_options(array $params): string
+{
+    return (new Hooks())->adminScaffoldOptions($params);
 }
 
 function continuum_admin_reset_password(array $params): string
