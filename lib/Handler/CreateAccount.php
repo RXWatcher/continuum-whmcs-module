@@ -46,7 +46,16 @@ final class CreateAccount
         $existingId = $this->ctx->identity()->resolve($params);
         if ($existingId !== null) {
             try {
-                $this->ctx->client()->updateUser($existingId, array_merge($attrs, $this->syncFields($params)));
+                // A CreateAccount always means "this account should exist and
+                // be usable". If a prior terminate with delete_on_terminate
+                // OFF left the user disabled, the re-order must re-enable it:
+                // Continuum's updateUser is a partial PATCH (auth/repository.go
+                // Update only touches `enabled` when it's present), so an
+                // omitted `enabled` leaves the stale disabled state intact.
+                $this->ctx->client()->updateUser(
+                    $existingId,
+                    array_merge($attrs, ['enabled' => true], $this->syncFields($params))
+                );
             } catch (ContinuumApiException $e) {
                 return $this->humanError($e);
             }

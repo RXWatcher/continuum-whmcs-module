@@ -15,6 +15,23 @@ Citation: [WHMCS Module Parameters](https://developers.whmcs.com/provisioning-mo
 - `customfields` keyed by field NAME (confirmed).
 - `configoption1..configoption24` for per-product config values.
 - `configoptions` keyed by configurable-option NAME → selected VALUE.
+- **No `status` / `domainstatus` key.** Re-verified against the same
+  citation on 2026-05-17: the documented parameter table contains no
+  service-status field. A provisioning hook cannot learn whether the
+  service is Active/Suspended/Terminated from `$params`.
+
+  **Consequence:** any handler that must assert the Continuum user's
+  `enabled` state (Continuum's `updateUser` is a partial PATCH — see
+  `auth/repository.go` `Update`, which only writes `enabled` when it is
+  present, so an omitted value preserves a stale disabled state) must read
+  `tblhosting.domainstatus` directly via `Capsule`, the same source
+  `DailyReconciler` uses. `ChangePackage` (also the target of the
+  "Reconcile from WHMCS" button) now does this with a fail-safe default:
+  it only sends `enabled => false` on a *definite* non-active status; a
+  missing/empty row keeps the user enabled so a reconcile can never
+  silently lock out a working customer. `CreateAccount` instead hardcodes
+  `enabled => true` — it is only ever invoked when the account should
+  exist and be usable; suspension is `SuspendAccount`'s responsibility.
 
 ## 2. `UpdateClientProduct` customfields payload — VERIFIED ✓ + FIXED ✓
 
@@ -175,7 +192,14 @@ a customer-entered value when an admin has enabled Show on Order Form.
 - §9: scaffolded configurable options + auto-created custom fields render
   correctly on the order form, and `configoption10` is still "Allow
   customer-chosen username".
+- §1: the `enabled`-state assertion. (a) Terminate a service with
+  `delete_on_terminate=OFF`, re-order on the **same** server, and confirm
+  the Continuum user comes back **enabled** — not merely relinked. (b) Run
+  "Reconcile from WHMCS" against a **Suspended** service and confirm the
+  user stays **disabled** (the fail-safe default must not resurrect a
+  non-payer). (c) Confirm `Capsule` can read `tblhosting.domainstatus`
+  from within the `ChangePackage` hook on the target WHMCS version.
 
 All can be checked by running one CreateAccount, one Reset Password, one
-scaffold, and one daily-cron manually against staging and inspecting the
-result.
+scaffold, one daily-cron, one terminate→same-server re-order, and one
+reconcile-on-Suspended manually against staging and inspecting the result.

@@ -8,6 +8,7 @@ use Continuum\WhmcsModule\Config\ProductConfig;
 use Continuum\WhmcsModule\ContinuumApiException;
 use Continuum\WhmcsModule\HookContext;
 use Continuum\WhmcsModule\Identity\Params;
+use WHMCS\Database\Capsule;
 
 final class ChangePackage
 {
@@ -37,8 +38,28 @@ final class ChangePackage
         $svcOptions = $this->normaliseConfigurableOptions($params['configoptions'] ?? []);
         $attrs = $this->ctx->mapper()->apply($pc, $svcOptions);
 
+        // Reconcile/ChangePackage must assert the enabled state, not leave
+        // it untouched: Continuum's updateUser is a partial PATCH, so an
+        // omitted `enabled` would let a stale disabled user (e.g. from a
+        // retain-on-terminate) survive a reconcile that reports success.
+        //
+        // WHMCS does NOT pass service status in $params (verified against
+        // developers.whmcs.com — see docs/whmcs-contracts.md §1), so read
+        // tblhosting.domainstatus directly, the same source DailyReconciler
+        // uses. Fail safe: only disable on a DEFINITE non-active status;
+        // an empty/missing row keeps the account enabled so a reconcile can
+        // never silently lock out a working customer.
+        $status = Capsule::table('tblhosting')
+            ->where('id', Params::serviceId($params))
+            ->value('domainstatus');
+        $enabled = ($status === null || $status === '')
+            || strtolower((string)$status) === 'active';
+
         try {
-            $this->ctx->client()->updateUser($userId, array_merge($attrs, $this->syncFields($params)));
+            $this->ctx->client()->updateUser(
+                $userId,
+                array_merge($attrs, ['enabled' => $enabled], $this->syncFields($params))
+            );
         } catch (ContinuumApiException $e) {
             return $this->humanError($e);
         }
