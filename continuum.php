@@ -76,8 +76,9 @@ function continuum_ConfigOptions(): array
         'max_playback_quality' => [
             'FriendlyName' => 'Max playback quality',
             'Type' => 'dropdown',
-            'Options' => ',4k,1080p,720p,480p',
-            'Description' => 'Leave blank for unrestricted',
+            'Options' => ',1080p,4k',
+            'Description' => 'Leave blank for unrestricted. Continuum only'
+                . ' enforces 1080p or 4k; older 720p/480p settings behave as 1080p.',
         ],
         'create_default_profile' => [
             'FriendlyName' => 'Create default profile on CreateAccount',

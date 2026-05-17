@@ -72,12 +72,15 @@ final class DriftCheck
             }
         }
 
-        if (
-            isset($whmcsExpected['max_playback_quality'])
-            && (string)($continuumObserved['max_playback_quality'] ?? '') !== (string)$whmcsExpected['max_playback_quality']
-        ) {
-            $drifts[] = "{$prefix}: max_playback_quality expected='{$whmcsExpected['max_playback_quality']}'"
-                . " but Continuum has '" . (string)($continuumObserved['max_playback_quality'] ?? '') . "'";
+        if (isset($whmcsExpected['max_playback_quality'])) {
+            // Compare canonically: the module uses '4k' while Continuum
+            // stores '2160p', and 480p/720p both mean 1080p.
+            $expQ = PlaybackQuality::canonical((string)$whmcsExpected['max_playback_quality']);
+            $obsQ = PlaybackQuality::canonical((string)($continuumObserved['max_playback_quality'] ?? ''));
+            if ($expQ !== $obsQ) {
+                $drifts[] = "{$prefix}: max_playback_quality expected='{$expQ}'"
+                    . " but Continuum has '{$obsQ}'";
+            }
         }
 
         return $drifts;

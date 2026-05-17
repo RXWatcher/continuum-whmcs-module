@@ -95,7 +95,7 @@ Set the module name to `continuum`, then configure:
 | Max profiles | Integer profile limit. |
 | Downloads allowed | Whether downloads are allowed. |
 | Download transcode allowed | Whether download transcoding is allowed. |
-| Max playback quality | Blank for unrestricted, or `4k`, `1080p`, `720p`, `480p`. |
+| Max playback quality | Blank for unrestricted, or `1080p`, or `4k`. Continuum only enforces these; legacy `720p`/`480p` settings behave as `1080p`. |
 | Create default profile on CreateAccount | Recommended: enabled. |
 | Allow customer-chosen username | Enables the optional `desired_username` field. |
 
@@ -133,7 +133,7 @@ case-insensitive, and punctuation is ignored.
 | `Max Profiles` | Quantity or dropdown | Replaces `Max profiles`. |
 | `Downloads Allowed` | Checkbox or dropdown | Overrides download access. |
 | `Download Transcode Allowed` | Checkbox or dropdown | Overrides download-transcode access. |
-| `Max Playback Quality` | Dropdown or radio | Sets playback quality: unrestricted, 4k, 1080p, 720p, or 480p. |
+| `Max Playback Quality` | Dropdown or radio | Sets playback quality. Continuum enforces only unrestricted, `1080p`, or `4k`; `720p`/`480p` values map to `1080p`. |
 | `4K Streaming` | Checkbox | When checked, sets playback quality to 4k. |
 | `Library IDs` | Dropdown or radio | Appends library IDs from a value such as `3` or `3,5`. |
 | `Libraries` | Dropdown or radio | Same as `Library IDs`. |

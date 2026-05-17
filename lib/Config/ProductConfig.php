@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Continuum\WhmcsModule\Config;
 
+use Continuum\WhmcsModule\PlaybackQuality;
+
 final class ProductConfig
 {
     private string $role;
@@ -93,17 +95,10 @@ final class ProductConfig
 
     private static function readQuality(array $params): string
     {
-        $raw = trim((string)($params['configoption8'] ?? ''));
-        if ($raw === '') {
-            return '';
-        }
-        $allowed = ['4k', '1080p', '720p', '480p'];
-        if (!in_array($raw, $allowed, true)) {
-            throw new \InvalidArgumentException(
-                "max_playback_quality must be one of: '' (unrestricted), " . implode(', ', $allowed)
-            );
-        }
-        return $raw;
+        // Canonicalise to what Continuum enforces ('', 1080p, 4k).
+        // Legacy 720p/480p product settings degrade to 1080p rather than
+        // failing provisioning (that is Continuum's real behaviour).
+        return PlaybackQuality::canonical((string)($params['configoption8'] ?? ''));
     }
 
     public function role(): string

@@ -7,6 +7,7 @@ namespace Continuum\WhmcsModule\Handler;
 use Continuum\WhmcsModule\ContinuumApiException;
 use Continuum\WhmcsModule\HookContext;
 use Continuum\WhmcsModule\Identity\Params;
+use Continuum\WhmcsModule\PlaybackQuality;
 
 final class ClientArea
 {
@@ -61,13 +62,8 @@ final class ClientArea
 
     private function humanQuality(string $q): string
     {
-        return match ($q) {
-            '4k' => 'Up to 4K',
-            '1080p' => 'Up to 1080p',
-            '720p' => 'Up to 720p',
-            '480p' => 'Up to 480p',
-            default => 'Unrestricted',
-        };
+        // $q comes from Continuum ('', '1080p', '2160p').
+        return PlaybackQuality::human($q);
     }
 
     private function humanRelativeTime(string $iso): string

@@ -155,18 +155,7 @@ class AttributeMapper
 
     private function qualityValue(string $value): string
     {
-        $v = strtolower(trim($value));
-        $v = str_replace([' ', '_'], '', $v);
-        if (in_array($v, ['unrestricted', 'none', 'no', '0'], true)) {
-            return '';
-        }
-        return match ($v) {
-            '4k', 'uhd' => '4k',
-            '1080p', 'fhd', 'fullhd' => '1080p',
-            '720p', 'hd' => '720p',
-            '480p', 'sd' => '480p',
-            default => '',
-        };
+        return PlaybackQuality::canonical($value);
     }
 
     /**
