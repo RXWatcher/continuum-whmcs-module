@@ -71,7 +71,11 @@ function continuum_ConfigOptions(): array
         ],
         'download_transcode_allowed' => [
             'FriendlyName' => 'Download transcode allowed',
-            'Type' => 'yesno', 'Default' => 'no',
+            // No Default => WHMCS renders the checkbox unchecked, i.e.
+            // defaults to No. ('Default' => 'no' is non-standard for a
+            // yesno checkbox and does not reliably mean off.)
+            'Type' => 'yesno',
+            'Description' => 'Default: No. Has no effect unless Downloads allowed is enabled.',
         ],
         'max_playback_quality' => [
             'FriendlyName' => 'Max playback quality',
