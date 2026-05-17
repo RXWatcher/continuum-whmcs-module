@@ -1,8 +1,9 @@
 # WHMCS contract verification
 
-**Status: 5 of 9 items VERIFIED via developers.whmcs.com on 2026-05-13.**
-The remaining items (§3, §7, §8, §9) need confirmation against the target
-WHMCS install during the pre-deploy smoke (Phase 14.2).
+**Status: 5 of the original 9 items VERIFIED via developers.whmcs.com on
+2026-05-13.** §10 (multi-server re-home) was added later. The remaining
+items (§3, §7, §8, §9, §10) need confirmation against the target WHMCS
+install during the pre-deploy smoke (Phase 14.2).
 
 ## 1. `$params` shape per hook — VERIFIED ✓
 
@@ -111,8 +112,10 @@ pre-deploy smoke that toggling `reconcile_daily` on the server form
 actually reaches `ServerConfig::fromParams`.
 
 **Risk:** if WHMCS doesn't surface extra named server fields, the flag
-may need to live as a per-product `configoption12` or in a separate
-admin setting.
+may need to live as a per-product config option or in a separate admin
+setting. (Note: `configoption11`/`12` are now taken by
+`delete_on_terminate` / `auto_rehome_on_reorder`; the next free slot is
+`configoption13`.)
 
 ## 8. `UpdateClientProduct` service-credential params + `serverport` — FIXED ✓ (verify pre-deploy)
 
@@ -181,6 +184,49 @@ options render on the order form, that the post-pipe custom-field naming
 behaviour above still holds, and that `Params::desiredUsername` resolves
 a customer-entered value when an admin has enabled Show on Order Form.
 
+## 10. Multi-server re-home (`auto_rehome_on_reorder`) — FIXED ✓ (verify pre-deploy)
+
+Citation: [WHMCS UpdateClientProduct](https://developers.whmcs.com/api-reference/updateclientproduct/) + [WHMCS Module Parameters](https://developers.whmcs.com/provisioning-modules/module-parameters/).
+
+Opt-in (`configoption12`, default OFF). When ON, `CreateAccount` may
+move a service to the Continuum server that already hosts the returning
+customer, then re-link the existing user instead of creating a fresh
+account. Contract assumptions on the target WHMCS version:
+
+- **Service re-pointing.** `UpdateClientProduct` accepts `serverid` to
+  move a service between servers — but, like the §2/§8 gotcha family, an
+  unrecognised/ignored parameter still returns `success`. The module
+  therefore does **not** trust it: after the API call it reads back
+  `tblhosting.server` and, if unchanged, forces a direct
+  `Capsule::table('tblhosting')->update(['server' => …])`, then
+  re-verifies. Only an unverified move (both paths failed) is fatal —
+  re-home never silently creates a fresh account. **Verify:** a
+  re-homed service genuinely runs on the new server, i.e. subsequent
+  hooks (Suspend/ChangePackage/ClientArea) receive the new server's
+  connection params in `$params`.
+- **Cross-server scan.** `ServerRegistry` reads `tblservers` filtered to
+  `type='continuum'`, skips rows with `disabled = 1`, and builds a
+  per-server client from `hostname`/`port`/`secure`/`decrypt(password)`
+  — the same shape `hooks.php` (DailyCronJob/ClientEdit) already relies
+  on. **Verify:** `tblservers.disabled` truthiness (1 = disabled) and
+  that `decrypt()` is callable from the `CreateAccount` path on the
+  target version (it is in cron/`ClientEdit`; CreateAccount is a new
+  caller).
+- **Pointer table.** `HomeStore` creates `mod_continuum_home` on demand
+  via `Capsule::schema()` (same direct-schema philosophy as §9). It is a
+  pure cache: every method is best-effort and degrades to a full scan,
+  so a missing schema builder or insufficient `CREATE` grant only costs
+  a re-scan, never correctness. **Verify:** the table is created (or the
+  DB user *can* create it) on the target; otherwise note that re-home
+  runs scan-only.
+
+**Risk / to verify (end-to-end):** with `auto_rehome_on_reorder` ON and
+`delete_on_terminate` OFF — terminate a service on server A, place a
+**new** order that WHMCS routes to server B, and confirm: the service
+ends up on **A**, the existing Continuum user is re-enabled with history
+intact, no fresh account was created on B, the `mod_continuum_home`
+pointer row exists, and a follow-up hook (e.g. Suspend) operates on A.
+
 ---
 
 ## Items still to verify pre-deploy
@@ -199,7 +245,13 @@ a customer-entered value when an admin has enabled Show on Order Form.
   user stays **disabled** (the fail-safe default must not resurrect a
   non-payer). (c) Confirm `Capsule` can read `tblhosting.domainstatus`
   from within the `ChangePackage` hook on the target WHMCS version.
+- §10: multi-server re-home end-to-end (terminate on A → new order routed
+  to B → service ends on A, user re-enabled, history intact, pointer row
+  written, follow-up hook operates on A); `tblservers.disabled`
+  semantics; `decrypt()` callable from `CreateAccount`; `Capsule::schema()`
+  can create `mod_continuum_home` (or the DB user can).
 
 All can be checked by running one CreateAccount, one Reset Password, one
-scaffold, one daily-cron, one terminate→same-server re-order, and one
-reconcile-on-Suspended manually against staging and inspecting the result.
+scaffold, one daily-cron, one terminate→same-server re-order, one
+reconcile-on-Suspended, and one multi-server re-order (re-home) manually
+against staging and inspecting the result.
