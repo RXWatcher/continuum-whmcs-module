@@ -106,6 +106,18 @@ function continuum_ConfigOptions(): array
                 . ' where a fresh account is created and the old history is not recovered.'
                 . ' Suspend/Unsuspend never delete, regardless of this setting.',
         ],
+        'auto_rehome_on_reorder' => [
+            'FriendlyName' => 'Re-home returning customers (multi-server)',
+            'Type' => 'yesno',
+            // No Default => off (matches the yesno-checkbox convention).
+            'Description' => 'OFF (default): a new order is provisioned on whatever'
+                . ' server WHMCS assigns. ON: if the customer already has a Continuum'
+                . ' user on another configured server (e.g. from a prior service kept'
+                . ' via "Delete Continuum user on termination" = OFF), this service is'
+                . ' moved to that server and re-linked instead of creating a fresh'
+                . ' account — preserving their profiles and watch history. No effect'
+                . ' with a single server or a shared Continuum backend.',
+        ],
     ];
 }
 

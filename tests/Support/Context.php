@@ -5,25 +5,51 @@ declare(strict_types=1);
 namespace Continuum\WhmcsModule\Tests\Support;
 
 use Continuum\WhmcsModule\AttributeMapper;
+use Continuum\WhmcsModule\Config\ServerConfig;
+use Continuum\WhmcsModule\Continuum\ClientInterface;
+use Continuum\WhmcsModule\HomeStore;
 use Continuum\WhmcsModule\HookContext;
 use Continuum\WhmcsModule\Identity;
+use Continuum\WhmcsModule\ServerRegistry;
 use Continuum\WhmcsModule\Whmcs\CustomFieldStore;
 
 /**
  * Builds a HookContext wired to the FakeClient but with the *real*
- * Identity, AttributeMapper, and CustomFieldStore — so handler tests
- * exercise the genuine resolution/mapping/custom-field code, with only
- * the HTTP boundary and WHMCS runtime faked.
+ * Identity, AttributeMapper, CustomFieldStore, ServerRegistry and
+ * HomeStore — so handler tests exercise the genuine
+ * resolution/mapping/custom-field/re-home code, with only the HTTP
+ * boundary and WHMCS runtime faked.
  */
 final class Context
 {
-    public static function make(FakeClient $client): HookContext
-    {
+    public static function make(
+        FakeClient $client,
+        ?ServerRegistry $servers = null,
+        ?HomeStore $home = null,
+    ): HookContext {
         return new HookContext(
             $client,
             new Identity($client),
             new AttributeMapper(),
             new CustomFieldStore(),
+            $servers ?? new ServerRegistry(),
+            $home ?? new HomeStore(),
+        );
+    }
+
+    /**
+     * A ServerRegistry whose per-server client is resolved from a map
+     * keyed by the server's API key (tblservers.password, decrypted by
+     * the identity shim). Lets re-home tests bind a distinct FakeClient
+     * per Continuum server.
+     *
+     * @param array<string, ClientInterface> $clientsByApiKey
+     */
+    public static function serverRegistry(array $clientsByApiKey): ServerRegistry
+    {
+        return new ServerRegistry(
+            static fn(ServerConfig $cfg): ClientInterface =>
+                $clientsByApiKey[$cfg->apiKey()] ?? new FakeClient()
         );
     }
 
@@ -38,6 +64,7 @@ final class Context
     {
         return array_replace_recursive([
             'serviceid' => 7,
+            'serverid' => 1,
             'pid' => 3,
             'username' => 'svc_user',
             'password' => 'pw-123456',

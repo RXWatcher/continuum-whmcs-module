@@ -95,6 +95,17 @@ final class ProductConfig
         return self::readYesNo($params, 'configoption11', true);
     }
 
+    /**
+     * Whether a new order should be re-homed to a server that already
+     * hosts this customer's Continuum user (multi-server). configoption12,
+     * default OFF. Read standalone like deleteOnTerminate so it never
+     * passes through validation that could block provisioning.
+     */
+    public static function autoRehome(array $params): bool
+    {
+        return self::readYesNo($params, 'configoption12', false);
+    }
+
     private static function readYesNo(array $params, string $key, bool $default): bool
     {
         $raw = trim((string)($params[$key] ?? ''));

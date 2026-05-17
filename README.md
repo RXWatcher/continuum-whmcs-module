@@ -109,7 +109,8 @@ Set the module name to `continuum`, then configure:
 | Max playback quality | Blank for unrestricted, or `1080p`, or `4k`. Continuum only enforces these three; legacy `720p`/`480p` behave as `1080p`. |
 | Create default profile on CreateAccount | Recommended: enabled. Continuum creates one ready-to-use viewing profile inside the new account; if it can't, Continuum rolls back the user. With it off, the customer logs in to an empty account and must create a profile. |
 | Allow customer-chosen username | See [Username Behavior](#username-behavior). |
-| Delete Continuum user on termination | **Default ON.** ON: terminating the service permanently deletes the Continuum user (profiles + watch history; cannot be undone). OFF: termination only disables the user (data retained, re-order re-links). |
+| Delete Continuum user on termination | **Default ON.** ON: terminating the service permanently deletes the Continuum user (profiles + watch history; cannot be undone). OFF: termination only disables the user (data retained; a re-order re-links only if it resolves to the same Continuum server — see [Service Lifecycle](#service-lifecycle)). |
+| Re-home returning customers (multi-server) | **Default OFF.** ON: a new order whose user already exists on another configured Continuum server moves the service to that server and re-links the existing user instead of creating a fresh account. See [Re-home returning customers](#re-home-returning-customers-multi-server). |
 
 ### Custom fields (auto-created)
 
@@ -258,13 +259,33 @@ option (**default ON**):
   *brand-new* order is matched only by email/username, so in a multi-server
   group it can be routed to a different server where the disabled user does
   not exist — there a fresh account is created and the old history is **not**
-  recovered. To rely on retention with multiple servers, pin re-orders back
-  to the originating server (specific-server / one-server-per-product) or
-  treat returns as reactivations rather than new orders. Removal then requires
-  a deliberate manual action in Continuum — a data-retention/GDPR
+  recovered. To rely on retention with multiple servers, either enable
+  **Re-home returning customers** (below), pin re-orders back to the
+  originating server (specific-server / one-server-per-product), or treat
+  returns as reactivations rather than new orders. Removal then requires a
+  deliberate manual action in Continuum — a data-retention/GDPR
   consideration.
 
 Suspend and Unsuspend never delete, regardless of this option.
+
+### Re-home returning customers (multi-server)
+
+The **Re-home returning customers** product option (`auto_rehome_on_reorder`,
+**default OFF**) closes the multi-server gap above. When ON, a brand-new order
+whose user can't be resolved on the assigned server triggers a cross-server
+lookup (every active continuum-typed WHMCS server, by email then username,
+cached in a `mod_continuum_home` pointer table). If the customer's existing
+Continuum user is found on another server, the WHMCS service is **moved to
+that server** (`UpdateClientProduct` with `serverid`) and the existing user is
+re-linked and re-enabled — preserving profiles and watch history — instead of
+creating a fresh account.
+
+- A genuine new customer (found nowhere) is created normally; the chosen home
+  is recorded so future re-orders are deterministic and cheap.
+- If a home exists but the move fails, provisioning returns a descriptive
+  error rather than silently creating a fresh account and orphaning history.
+- Users only reachable on a disabled server fall back to a fresh account.
+- No effect with a single server or a shared Continuum backend.
 
 ## Linkage And Recovery
 

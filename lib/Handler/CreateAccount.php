@@ -11,6 +11,7 @@ use Continuum\WhmcsModule\HookContext;
 use Continuum\WhmcsModule\Identity\Params;
 use Continuum\WhmcsModule\UsernameGenerator;
 use Continuum\WhmcsModule\UsernameValidator;
+use WHMCS\Database\Capsule;
 
 final class CreateAccount
 {
@@ -60,6 +61,7 @@ final class CreateAccount
                 return $this->humanError($e);
             }
             $this->ensureLinkage($this->ctx, $params, $existingId);
+            $this->rememberHome($params, $this->assignedServerId($params), $existingId);
             return 'success';
         }
 
@@ -67,6 +69,18 @@ final class CreateAccount
         if ($email === '') {
             return 'Client email is required';
         }
+
+        // Multi-server: before creating a fresh user, see if this customer
+        // already has a Continuum user on another configured server (a
+        // retain-on-terminate from a prior order). If so, move this service
+        // there and re-link rather than orphaning their history.
+        if (ProductConfig::autoRehome($params)) {
+            $rehomed = $this->tryRehome($params, $email, $attrs);
+            if ($rehomed !== null) {
+                return $rehomed; // 'success', or a descriptive failure
+            }
+        }
+
         $defaultProfileName = (string)($params['clientsdetails']['firstname'] ?? '');
         if ($defaultProfileName === '') {
             $defaultProfileName = explode('@', $email)[0];
@@ -124,7 +138,96 @@ final class CreateAccount
 
         $this->ensureLinkage($this->ctx, $params, $userId);
         $this->writeServiceUsername($params, $username);
+        $this->rememberHome($params, $this->assignedServerId($params), $userId);
         return 'success';
+    }
+
+    /**
+     * Re-home: if the customer already has a Continuum user on another
+     * configured server, move this WHMCS service to that server and
+     * re-link the existing user (re-enabled + attributes re-applied).
+     *
+     * Returns null when no home is found (caller proceeds to create a
+     * fresh user — a genuine new customer); 'success' when re-homed; or a
+     * descriptive error when a home exists but the move failed (never
+     * silently falls back to a fresh account, which would lose history).
+     *
+     * @param array<string, mixed> $attrs mapped Continuum attributes
+     */
+    private function tryRehome(array $params, string $email, array $attrs): ?string
+    {
+        $pointer = $this->ctx->homeStore()->get($email);
+        $home = $this->ctx->servers()->findHome(
+            $email,
+            Params::username($params),
+            (int)($pointer['serverid'] ?? 0)
+        );
+        if ($home === null) {
+            return null; // genuine new customer (or only on unreachable servers)
+        }
+
+        if ($home['serverId'] !== $this->assignedServerId($params)) {
+            try {
+                $resp = localAPI('UpdateClientProduct', [
+                    'serviceid' => Params::serviceId($params),
+                    'serverid' => $home['serverId'],
+                ]);
+            } catch (\Throwable $e) {
+                return 'Re-home failed: could not move service to server '
+                    . $home['serverId'] . ': ' . $e->getMessage();
+            }
+            if (($resp['result'] ?? '') !== 'success') {
+                return 'Re-home failed: WHMCS did not move service to server '
+                    . $home['serverId'] . ' (' . json_encode($resp) . ')';
+            }
+        }
+
+        try {
+            $home['client']->updateUser($home['userId'], array_merge(
+                $attrs,
+                ['enabled' => true],
+                $this->syncFields($params)
+            ));
+        } catch (ContinuumApiException $e) {
+            return $this->humanError($e);
+        }
+
+        $this->ensureLinkage($this->ctx, $params, $home['userId']);
+        if ($home['username'] !== '') {
+            $this->writeServiceUsername($params, $home['username']);
+        }
+        $this->rememberHome($params, $home['serverId'], $home['userId']);
+        if (function_exists('logActivity')) {
+            logActivity(
+                'continuum: re-homed service ' . Params::serviceId($params)
+                . ' to server ' . $home['serverId'] . ' (Continuum user '
+                . $home['userId'] . ') to preserve existing account/history'
+            );
+        }
+        return 'success';
+    }
+
+    private function assignedServerId(array $params): int
+    {
+        $sid = (int)($params['serverid'] ?? 0);
+        if ($sid > 0) {
+            return $sid;
+        }
+        try {
+            return (int)Capsule::table('tblhosting')
+                ->where('id', Params::serviceId($params))
+                ->value('server');
+        } catch (\Throwable $e) {
+            return 0;
+        }
+    }
+
+    private function rememberHome(array $params, int $serverId, int $userId): void
+    {
+        $email = Params::email($params);
+        if ($email !== '' && $serverId > 0 && $userId > 0) {
+            $this->ctx->homeStore()->put($email, $serverId, $userId);
+        }
     }
 
     /** @return string[] */

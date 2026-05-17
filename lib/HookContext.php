@@ -20,6 +20,8 @@ final class HookContext
         private Identity $identity,
         private AttributeMapper $mapper,
         private CustomFieldStore $customFields = new CustomFieldStore(),
+        private ServerRegistry $servers = new ServerRegistry(),
+        private HomeStore $homeStore = new HomeStore(),
     ) {
     }
 
@@ -27,7 +29,14 @@ final class HookContext
     {
         $cfg = ServerConfig::fromParams($params);
         $client = new Client($cfg);
-        return new self($client, new Identity($client), new AttributeMapper(), new CustomFieldStore());
+        return new self(
+            $client,
+            new Identity($client),
+            new AttributeMapper(),
+            new CustomFieldStore(),
+            new ServerRegistry(),
+            new HomeStore(),
+        );
     }
 
     public function client(): ClientInterface
@@ -48,5 +57,15 @@ final class HookContext
     public function customFields(): CustomFieldStore
     {
         return $this->customFields;
+    }
+
+    public function servers(): ServerRegistry
+    {
+        return $this->servers;
+    }
+
+    public function homeStore(): HomeStore
+    {
+        return $this->homeStore;
     }
 }
