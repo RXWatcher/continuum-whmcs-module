@@ -33,6 +33,9 @@ final class FakeClient implements ClientInterface
 
     public ?ContinuumApiException $updateUserError = null;
     public ?ContinuumApiException $deleteUserError = null;
+    public ?ContinuumApiException $getUserError = null;
+    public ?ContinuumApiException $findUserByEmailError = null;
+    public ?ContinuumApiException $findUserByUsernameError = null;
 
     public function createUser(array $payload): array
     {
@@ -64,18 +67,27 @@ final class FakeClient implements ClientInterface
     public function getUser(int $userId): array
     {
         $this->calls[] = ['method' => 'getUser', 'args' => [$userId]];
+        if ($this->getUserError !== null) {
+            throw $this->getUserError;
+        }
         return $this->usersById[$userId] ?? [];
     }
 
     public function findUserByEmail(string $email): ?array
     {
         $this->calls[] = ['method' => 'findUserByEmail', 'args' => [$email]];
+        if ($this->findUserByEmailError !== null) {
+            throw $this->findUserByEmailError;
+        }
         return $this->usersByEmail[strtolower($email)] ?? null;
     }
 
     public function findUserByUsername(string $username): ?array
     {
         $this->calls[] = ['method' => 'findUserByUsername', 'args' => [$username]];
+        if ($this->findUserByUsernameError !== null) {
+            throw $this->findUserByUsernameError;
+        }
         return $this->usersByUsername[$username] ?? null;
     }
 
