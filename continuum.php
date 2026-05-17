@@ -99,8 +99,12 @@ function continuum_ConfigOptions(): array
             'Type' => 'yesno', 'Default' => 'on',
             'Description' => 'ON (default): terminating this WHMCS service PERMANENTLY DELETES the'
                 . ' Continuum user, including their profiles and watch history. This cannot be undone.'
-                . ' OFF: termination only disables the Continuum user (account and history are kept,'
-                . ' and re-ordering re-links them). Suspend/Unsuspend never delete, regardless of this setting.',
+                . ' OFF: termination only disables the Continuum user; the account and history are kept,'
+                . ' and a later re-order re-links AND re-enables the SAME user — but only if it resolves'
+                . ' to the same Continuum server. Reactivating the same WHMCS service always does;'
+                . ' with a multi-server group a brand-new order may be routed to a different server,'
+                . ' where a fresh account is created and the old history is not recovered.'
+                . ' Suspend/Unsuspend never delete, regardless of this setting.',
         ],
     ];
 }

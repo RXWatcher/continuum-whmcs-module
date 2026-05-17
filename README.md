@@ -251,7 +251,16 @@ option (**default ON**):
   termination still succeeds.
 - **OFF:** terminate only disables the user (functionally identical to
   Suspend). The account and history are retained, and a returning customer is
-  re-linked by email/username on the next CreateAccount. Removal then requires
+  re-linked **and re-enabled** on the next CreateAccount or Reconcile —
+  **provided it resolves to the same Continuum server**. Linkage resolution is
+  per-server (see below): reactivating the *same* WHMCS service always works,
+  because it keeps the `continuum_user_id` linkage and server assignment; a
+  *brand-new* order is matched only by email/username, so in a multi-server
+  group it can be routed to a different server where the disabled user does
+  not exist — there a fresh account is created and the old history is **not**
+  recovered. To rely on retention with multiple servers, pin re-orders back
+  to the originating server (specific-server / one-server-per-product) or
+  treat returns as reactivations rather than new orders. Removal then requires
   a deliberate manual action in Continuum — a data-retention/GDPR
   consideration.
 
@@ -271,6 +280,12 @@ When a hook finds a user through a fallback signal it repairs
 username back to Continuum, making WHMCS the source of truth for those fields.
 A transient Continuum API error during fallback resolution is treated as
 "unresolved" rather than crashing the hook.
+
+Resolution is **per-server**: every hook runs against the one Continuum
+server WHMCS assigned to that service, and the fallbacks (email/username)
+only search that server's users — there is no cross-server lookup. This is
+why retain-on-terminate recovery depends on a re-order landing back on the
+originating server (see **Service Lifecycle → OFF** above).
 
 ## Admin Tools
 
