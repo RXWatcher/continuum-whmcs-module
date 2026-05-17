@@ -37,6 +37,10 @@ final class FakeClient implements ClientInterface
     public ?ContinuumApiException $findUserByEmailError = null;
     public ?ContinuumApiException $findUserByUsernameError = null;
 
+    /** @var array<int, array<string, mixed>> */
+    public array $libraries = [];
+    public ?\Throwable $listLibrariesError = null;
+
     public function createUser(array $payload): array
     {
         $this->calls[] = ['method' => 'createUser', 'args' => [$payload]];
@@ -94,7 +98,10 @@ final class FakeClient implements ClientInterface
     public function listLibraries(): array
     {
         $this->calls[] = ['method' => 'listLibraries', 'args' => []];
-        return [];
+        if ($this->listLibrariesError !== null) {
+            throw $this->listLibrariesError;
+        }
+        return $this->libraries;
     }
 
     public function baseUrlForDeepLink(): string

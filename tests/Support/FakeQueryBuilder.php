@@ -20,6 +20,9 @@ final class FakeQueryBuilder
 
     public function __construct(private string $table)
     {
+        if (FakeWhmcs::$throwForTable === $table) {
+            throw new \RuntimeException("simulated DB failure for {$table}");
+        }
     }
 
     public function where($a, $b = null, $c = null): self
@@ -84,5 +87,23 @@ final class FakeQueryBuilder
     {
         FakeWhmcs::$tables[$this->table][] = $row;
         return true;
+    }
+
+    /** @param array<string, mixed> $row */
+    public function insertGetId(array $row): int
+    {
+        $maxId = 0;
+        foreach (FakeWhmcs::rows($this->table) as $r) {
+            $maxId = max($maxId, (int)($r['id'] ?? 0));
+        }
+        $row['id'] ??= $maxId + 1;
+        FakeWhmcs::$tables[$this->table][] = $row;
+        return (int)$row['id'];
+    }
+
+    /** @return array<int, mixed> */
+    public function pluck(string $column): array
+    {
+        return array_map(static fn(array $r) => $r[$column] ?? null, $this->matching());
     }
 }

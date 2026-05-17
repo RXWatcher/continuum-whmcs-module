@@ -32,6 +32,9 @@ final class FakeWhmcs
     /** @var string[] */
     public static array $activityLog = [];
 
+    /** When set, any Capsule::table() for this table throws (simulates a DB failure). */
+    public static ?string $throwForTable = null;
+
     public static function reset(): void
     {
         self::$tables = [];
@@ -43,6 +46,7 @@ final class FakeWhmcs
             ['id' => 2, 'name' => 'continuum_library_names_cache', 'value' => ''],
         ];
         self::$activityLog = [];
+        self::$throwForTable = null;
     }
 
     /** @param array<int, array<string, mixed>> $rows */

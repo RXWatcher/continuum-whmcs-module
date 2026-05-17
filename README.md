@@ -376,13 +376,20 @@ Tests run with no WHMCS or Continuum install: `tests/Support/` shims the
 WHMCS runtime (`localAPI`, `Capsule`, `logActivity`, …) and a
 `FakeClient` stands in for the Continuum HTTP API, so handlers exercise
 the real `Identity`/`AttributeMapper`/`CustomFieldStore` code. Coverage
-focuses on the service-lifecycle handlers — in particular the
-status-aware `enabled` assertion in `CreateAccount`/`ChangePackage` (see
-`docs/whmcs-contracts.md` §1).
+spans every service-lifecycle and admin handler (Create/Change/
+Terminate/SetEnabled, ChangePassword, AdminResetPassword, TestConnection,
+ClientArea, AdminServicesTab, ScaffoldOptions) and the pure logic
+(Identity, AttributeMapper, ProductConfig/ServerConfig, PlaybackQuality,
+Username validation/generation, BadWordList, DriftCheck,
+ConfigOptionScaffolder) — including the status-aware `enabled` assertion
+in `CreateAccount`/`ChangePackage`.
+
+CI runs the suite on every push and PR (`.github/workflows/tests.yml`,
+PHP 8.2–8.4) plus a `php -l` lint at the 8.1 runtime floor.
 
 Release validation should still include a staging WHMCS install before
-publishing the packaged archive — the suite does not replace the
-pre-deploy smoke in `docs/whmcs-contracts.md`.
+publishing the packaged archive — see the pre-deploy smoke in
+`docs/whmcs-contracts.md`.
 
 ## Security Notes
 
