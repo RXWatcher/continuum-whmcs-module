@@ -10,6 +10,7 @@ use Continuum\WhmcsModule\Handler\AdminServicesTab;
 use Continuum\WhmcsModule\Handler\ChangePackage;
 use Continuum\WhmcsModule\Handler\ChangePassword;
 use Continuum\WhmcsModule\Handler\ClientArea;
+use Continuum\WhmcsModule\Handler\ClientResetPassword;
 use Continuum\WhmcsModule\Handler\CreateAccount;
 use Continuum\WhmcsModule\Handler\ScaffoldOptions;
 use Continuum\WhmcsModule\Handler\SetEnabled;
@@ -142,6 +143,19 @@ final class Hooks
             ]];
         }
         return (new ClientArea($ctx))->handle($params);
+    }
+
+    public function clientAreaResetPassword(array $params): string
+    {
+        try {
+            $ctx = $this->context($params);
+        } catch (\InvalidArgumentException $e) {
+            if (function_exists('logActivity')) {
+                logActivity('continuum: client password reset unavailable (config error): ' . $e->getMessage());
+            }
+            return 'This service is temporarily unavailable. Please contact support.';
+        }
+        return (new ClientResetPassword($ctx))->handle($params);
     }
 
     private function setEnabled(array $params, bool $enabled): string

@@ -29,5 +29,11 @@ interface ClientInterface
     /** @return array<int, array<string, mixed>> */
     public function listLibraries(): array;
 
+    /** @return array<int, array{id: string, name: string}> profiles for one user */
+    public function listUserProfiles(int $userId): array;
+
+    /** @return array<int, array<string, mixed>> server-wide active playback sessions */
+    public function listSessions(): array;
+
     public function baseUrlForDeepLink(): string;
 }

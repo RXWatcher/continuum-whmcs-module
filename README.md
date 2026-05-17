@@ -325,11 +325,28 @@ On a Continuum-backed WHMCS service, staff can use:
 
 ## Client Area
 
-The module renders `templates/clientarea.tpl` for the customer service page —
-service state, stream limit, playback quality, library names ("All libraries"
-when unrestricted), last-seen time, and a sign-in link. All output is escaped;
-configuration problems show a generic message (details go to the activity log,
-never to the customer).
+The module renders `templates/clientarea.tpl` for the customer service page:
+
+- **Status & identity** — active/suspended badge, Continuum username, member-since.
+- **Plan** — concurrent streams, transcodes, profile limit, playback quality,
+  download access.
+- **Live usage** — profiles used vs. limit (with names), and "watching now"
+  (active streams vs. limit, with titles). Stream/profile counts come from
+  `/admin/sessions` and `/admin/users/{id}/profiles`; **`client_ip` and other
+  PII are never surfaced** — only titles/counts.
+- **Libraries** — names ("All libraries" when unrestricted), last-seen time,
+  and a sign-in link.
+
+Self-service: a **Reset password & sign out all devices** button. A Continuum
+admin password change also revokes every session server-side, so this one
+action both rotates the password (shown once, also written to the WHMCS
+service) and signs the customer out everywhere.
+
+Each enrichment (`getUser`, profiles, sessions) degrades **independently** —
+if one Continuum call fails the rest of the page still renders. All output is
+escaped; configuration problems show a generic message (details go to the
+activity log, never to the customer). Note this adds up to ~3 admin-API calls
+per page view (library names stay cached 24h via the custom field).
 
 ## Diagnostics
 

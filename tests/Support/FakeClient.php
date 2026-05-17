@@ -41,6 +41,14 @@ final class FakeClient implements ClientInterface
     public array $libraries = [];
     public ?\Throwable $listLibrariesError = null;
 
+    /** @var array<int, array{id: string, name: string}> */
+    public array $userProfiles = [];
+    public ?\Throwable $listUserProfilesError = null;
+
+    /** @var array<int, array<string, mixed>> */
+    public array $sessions = [];
+    public ?\Throwable $listSessionsError = null;
+
     public function createUser(array $payload): array
     {
         $this->calls[] = ['method' => 'createUser', 'args' => [$payload]];
@@ -102,6 +110,24 @@ final class FakeClient implements ClientInterface
             throw $this->listLibrariesError;
         }
         return $this->libraries;
+    }
+
+    public function listUserProfiles(int $userId): array
+    {
+        $this->calls[] = ['method' => 'listUserProfiles', 'args' => [$userId]];
+        if ($this->listUserProfilesError !== null) {
+            throw $this->listUserProfilesError;
+        }
+        return $this->userProfiles;
+    }
+
+    public function listSessions(): array
+    {
+        $this->calls[] = ['method' => 'listSessions', 'args' => []];
+        if ($this->listSessionsError !== null) {
+            throw $this->listSessionsError;
+        }
+        return $this->sessions;
     }
 
     public function baseUrlForDeepLink(): string

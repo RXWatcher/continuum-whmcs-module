@@ -201,7 +201,17 @@ function continuum_AdminServicesTabFields(array $params): array
 
 function continuum_ClientAreaCustomButtonArray(): array
 {
-    return [];   // login button is rendered inside the ClientArea template
+    // The sign-in link is rendered inside the ClientArea template; this
+    // exposes the one self-service action. A Continuum password change
+    // also revokes all sessions, so this is "reset + sign out everywhere".
+    return [
+        'Reset password & sign out all devices' => 'clientarea_resetpw',
+    ];
+}
+
+function continuum_clientarea_resetpw(array $params): string
+{
+    return (new Hooks())->clientAreaResetPassword($params);
 }
 
 function continuum_ClientArea(array $params): array

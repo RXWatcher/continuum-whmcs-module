@@ -129,6 +129,26 @@ final class Client implements ClientInterface
         return is_array($res) ? $res : [];
     }
 
+    /** @return array<int, array{id: string, name: string}> */
+    public function listUserProfiles(int $userId): array
+    {
+        $res = $this->jsonRequest('GET', "/api/v1/admin/users/{$userId}/profiles", null);
+        return is_array($res) ? $res : [];
+    }
+
+    /**
+     * Server-wide active playback sessions. The caller filters to the
+     * relevant user; rows include `client_ip` (PII) which must never be
+     * surfaced to the customer.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function listSessions(): array
+    {
+        $res = $this->jsonRequest('GET', '/api/v1/admin/sessions', null);
+        return is_array($res) ? $res : [];
+    }
+
     public function baseUrlForDeepLink(): string
     {
         return $this->cfg->baseUrl();
