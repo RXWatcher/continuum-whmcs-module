@@ -27,7 +27,7 @@ final class ChangePackage
 
         // "Reconcile from WHMCS" routes here too, so this doubles as the
         // manual fix for a product missing its custom fields.
-        $this->ensureCustomFields($params, $pc->allowUserChosenUsername());
+        $this->ensureCustomFields($params);
 
         $userId = $this->ctx->identity()->resolve($params);
         if ($userId === null) {

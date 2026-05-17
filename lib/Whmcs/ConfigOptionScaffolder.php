@@ -56,21 +56,14 @@ final class ConfigOptionScaffolder
 
         // For every continuum product: link the group and ensure the
         // internal custom fields exist (so a product with no provisioned
-        // service yet is fully prepped from this one action). configoption10
-        // is "Allow customer-chosen username" (positional, matching
-        // ProductConfig); when on, desired_username is created on the
-        // order form so customers can pick a username at checkout.
-        $products = Capsule::table('tblproducts')
-            ->where('servertype', 'continuum')->get(['id', 'configoption10']);
+        // service yet is fully prepped from this one action). All fields
+        // are created admin-only / not on the order form; an admin
+        // manually enables Show on Order Form for desired_username.
+        $productIds = Capsule::table('tblproducts')
+            ->where('servertype', 'continuum')->pluck('id');
         $cf = new CustomFieldProvisioner();
-        foreach ($products as $product) {
-            $pid = (int)$product->id;
-            $customerChosen = in_array(
-                strtolower(trim((string)$product->configoption10)),
-                ['yes', 'on', '1'],
-                true
-            );
-            $cf->ensure(0, $pid, CustomFieldProvisioner::moduleFields($customerChosen));
+        foreach ($productIds as $pid) {
+            $cf->ensure(0, (int)$pid, CustomFieldProvisioner::moduleFields());
 
             $linked = Capsule::table('tblproductconfiglinks')
                 ->where('gid', $gid)->where('pid', $pid)->exists();
@@ -81,8 +74,8 @@ final class ConfigOptionScaffolder
             Capsule::table('tblproductconfiglinks')->insert(['gid' => $gid, 'pid' => $pid]);
             $created[] = "link -> product {$pid}";
         }
-        if (count($products) > 0) {
-            $created[] = 'custom fields ensured on ' . count($products) . ' product(s)';
+        if (count($productIds) > 0) {
+            $created[] = 'custom fields ensured on ' . count($productIds) . ' product(s)';
         }
 
         return ['group' => self::GROUP_NAME, 'created' => $created, 'skipped' => $skipped];

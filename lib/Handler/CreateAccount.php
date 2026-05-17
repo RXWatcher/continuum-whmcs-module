@@ -33,7 +33,7 @@ final class CreateAccount
         // Create the custom fields the module needs if the admin hasn't,
         // so the very first provisioning attempt self-heals instead of
         // erroring out.
-        $this->ensureCustomFields($params, $pc->allowUserChosenUsername());
+        $this->ensureCustomFields($params);
 
         $missing = $this->probeMissing($serviceId);
         if ($missing !== []) {
@@ -144,7 +144,7 @@ final class CreateAccount
         if (!$pc->allowUserChosenUsername()) {
             return ['generate' => true];
         }
-        $desired = trim((string)($params['customfields']['desired_username'] ?? ''));
+        $desired = Params::desiredUsername($params);
         if ($desired === '') {
             return ['generate' => true];
         }

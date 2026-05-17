@@ -20,38 +20,35 @@ use WHMCS\Database\Capsule;
  */
 final class CustomFieldProvisioner
 {
-    /** Username format the order form should accept (mirrors UsernameValidator). */
-    private const USERNAME_REGEX = '/^[a-z0-9_-]{3,32}$/';
-
     /**
-     * The internal custom fields the module relies on.
+     * The internal custom fields the module relies on. All three are
+     * created admin-only and NOT on the order form. desired_username is
+     * included so the field exists, but order-form placement is left to
+     * the admin: to let customers choose a username, an admin manually
+     * ticks "Show on Order Form" on it in WHMCS (and enables "Allow
+     * customer-chosen username" so the module consults it). The module
+     * never moves it on/off the form, so a manual change is never undone.
      *
-     * continuum_user_id and continuum_library_names_cache are always
-     * internal admin-only fields. desired_username depends on the
-     * product's "Allow customer-chosen username" option:
-     *
-     *  - off (default): admin-only, not on the order form. Blank => the
-     *    module generates a username; an admin may set one.
-     *  - on: shown on the order form (optional) so the customer can pick
-     *    their own username at checkout, validated by the same rules.
-     *
-     * @return array<int, array{name:string, adminonly:bool, showorder:bool, description:string, regexpr?:string}>
+     * @return array<int, array{name:string, adminonly:bool, showorder:bool, description:string}>
      */
-    public static function moduleFields(bool $customerChosenUsername = false): array
+    public static function moduleFields(): array
     {
         return [
             ['name' => 'continuum_user_id', 'adminonly' => true, 'showorder' => false,
              'description' => 'Continuum user ID (managed by the continuum module)'],
             ['name' => 'continuum_library_names_cache', 'adminonly' => true, 'showorder' => false,
              'description' => 'Cached Continuum library names (managed by the continuum module)'],
-            $customerChosenUsername
-                ? ['name' => 'desired_username', 'adminonly' => false, 'showorder' => true,
-                   'description' => 'Choose your username (3-32 chars: a-z, 0-9, _ or -). '
-                       . 'Leave blank for an auto-generated one.',
-                   'regexpr' => self::USERNAME_REGEX]
-                : ['name' => 'desired_username', 'adminonly' => true, 'showorder' => false,
-                   'description' => 'Optional admin-set Continuum username (blank = auto-generated)'],
+            ['name' => 'desired_username|Enter your desired username',
+             'adminonly' => true, 'showorder' => false,
+             'description' => 'Chosen Continuum username (blank = auto-generated). '
+                 . 'To collect this from customers, an admin enables Show on Order Form.'],
         ];
+    }
+
+    /** Canonical pre-pipe name of a WHMCS `name | Label` field spec. */
+    private static function baseName(string $fieldName): string
+    {
+        return trim(explode('|', $fieldName, 2)[0]);
     }
 
     /**
@@ -70,33 +67,25 @@ final class CustomFieldProvisioner
         }
 
         foreach ($fields as $f) {
-            $adminonly = $f['adminonly'] ? 'on' : '';
-            $showorder = $f['showorder'] ? 'on' : '';
-            $regexpr = $f['regexpr'] ?? '';
-
-            $existing = Capsule::table('tblcustomfields')
+            // Create-if-missing only. Once a field exists the module
+            // never changes it — so an admin who ticks "Show on Order
+            // Form" (or relabels it) is never undone. A field is
+            // considered present if the exact name, the bare pre-pipe
+            // name, or any `base | Label` variant already exists, so a
+            // pre-existing plain `desired_username` is never duplicated.
+            $base = self::baseName($f['name']);
+            $likeBase = str_replace('_', '\\_', $base);
+            $exists = Capsule::table('tblcustomfields')
                 ->where('type', 'product')
                 ->where('relid', $productId)
-                ->where('fieldname', $f['name'])
-                ->first(['id', 'adminonly', 'showorder']);
-
-            if ($existing !== null) {
-                // Reconcile only desired_username's visibility so toggling
-                // the product's "Allow customer-chosen username" option
-                // moves it on/off the order form. Other fields, and any
-                // field an admin created, are left untouched.
-                if (
-                    $f['name'] === 'desired_username'
-                    && ($existing->adminonly !== $adminonly || $existing->showorder !== $showorder)
-                ) {
-                    Capsule::table('tblcustomfields')->where('id', $existing->id)->update([
-                        'adminonly' => $adminonly,
-                        'showorder' => $showorder,
-                        'regexpr' => $regexpr,
-                        'description' => $f['description'] ?? '',
-                        'updated_at' => date('Y-m-d H:i:s'),
-                    ]);
-                }
+                ->where(function ($q) use ($f, $base, $likeBase) {
+                    $q->where('fieldname', $f['name'])
+                        ->orWhere('fieldname', $base)
+                        ->orWhere('fieldname', 'like', $likeBase . '|%')
+                        ->orWhere('fieldname', 'like', $likeBase . ' |%');
+                })
+                ->exists();
+            if ($exists) {
                 continue;
             }
 
@@ -108,10 +97,10 @@ final class CustomFieldProvisioner
                 'fieldtype' => 'text',
                 'description' => $f['description'] ?? '',
                 'fieldoptions' => '',
-                'regexpr' => $regexpr,
-                'adminonly' => $adminonly,
+                'regexpr' => '',
+                'adminonly' => $f['adminonly'] ? 'on' : '',
                 'required' => '',
-                'showorder' => $showorder,
+                'showorder' => $f['showorder'] ? 'on' : '',
                 'showinvoice' => '',
                 'sortorder' => 0,
                 'created_at' => $now,

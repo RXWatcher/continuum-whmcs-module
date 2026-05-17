@@ -141,18 +141,28 @@ version:
   → `tblpricing` (`type='configoptions'`, `relid=<sub.id>`, one row per
   `tblcurrencies` id) → `tblproductconfiglinks` (`gid`,`pid`). Used by
   `Whmcs\ConfigOptionScaffolder`.
-- The scaffolder reads `tblproducts.configoption10` as "Allow
-  customer-chosen username" — positional, matching `ProductConfig`'s
-  `configoption1..10` ordering. If `continuum_ConfigOptions()` order
-  changes, this index must change too.
+- **Custom-field `name | Label` pipe — VERIFIED on this install.**
+  WHMCS treats the text *after* the `|` as the field's canonical
+  name/param key and does **not** trim it: `emby_connect_email | Please
+  enter ...` is returned by `GetClientsProducts` as
+  `name = " Please enter ..."` (leading space preserved). So a piped
+  `desired_username|Enter your desired username` is keyed in
+  `$params['customfields']` as `Enter your desired username`, NOT
+  `desired_username`. The module therefore resolves it tolerantly
+  (`Params::desiredUsername`: exact key, else pre-pipe == desired_username,
+  else a key containing "desired" + "username"), and
+  `CustomFieldProvisioner` dedupes by the pre-pipe base name so a
+  pre-existing plain `desired_username` is never duplicated. Use **no
+  spaces** around the `|` so the key/label has no stray leading space.
 
-All writes are idempotent (match by name/keys) and never overwrite
-admin-set pricing or admin-created fields.
+All writes are idempotent (match by name/base/keys) and never overwrite
+admin-set pricing or admin-created/edited fields (create-if-missing only;
+visibility changes an admin makes are never reverted).
 
 **Risk / to verify:** confirm on the target WHMCS version that scaffolded
-options render on the order form and that an auto-created
-`desired_username` (when "Allow customer-chosen username" is on) appears
-on the order form with its validation pattern.
+options render on the order form, that the post-pipe custom-field naming
+behaviour above still holds, and that `Params::desiredUsername` resolves
+a customer-entered value when an admin has enabled Show on Order Form.
 
 ---
 

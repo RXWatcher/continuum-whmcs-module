@@ -113,23 +113,22 @@ Set the module name to `continuum`, then configure:
 ### Custom fields (auto-created)
 
 The module **auto-creates** the service custom fields it needs, so no manual
-setup is required. `continuum_user_id` and `continuum_library_names_cache` are
-always **internal admin-only** fields, never on the order form. The third,
-`desired_username`, depends on the **Allow customer-chosen username** option:
+setup is required. All three are created **internal admin-only and not on the
+order form**:
 
 | Field Name | Purpose | On order form? |
 | --- | --- | --- |
 | `continuum_user_id` | Continuum linkage — written by the module | Never |
 | `continuum_library_names_cache` | Library-name cache — written by the module | Never |
-| `desired_username` | Customer/admin chosen username; blank → auto-generated | Only when **Allow customer-chosen username** is enabled |
+| `desired_username\|Enter your desired username` | Chosen username; blank → auto-generated | No by default — an admin enables it manually (see [Username Behavior](#username-behavior)) |
 
-They are created/reconciled the first time the module provisions or reconciles
-a service on the product, and immediately for every continuum product when the
+They are created the first time the module provisions or reconciles a service
+on the product, and immediately for every continuum product when the
 **Scaffold Configurable Options** admin button is used (so a product with no
-service yet — e.g. before its first order — is fully prepped). Auto-creation is
-idempotent. Toggling **Allow customer-chosen username** moves `desired_username`
-on/off the order form on the next provision, reconcile, or scaffold; fields you
-created yourself are never altered, and no field is ever WHMCS-"Required".
+service yet — e.g. before its first order — is fully prepped). Creation is
+**create-if-missing only**: once a field exists the module never changes it, so
+any edit you make (including ticking *Show on Order Form* for
+`desired_username`) is never undone. No field is ever WHMCS-"Required".
 
 ## Configurable Options
 
@@ -188,16 +187,22 @@ Values like `No`, `Off`, `False`, `0`, `None`, and empty strings are disabled.
 By default the module generates usernames in the form `abcd123`: four lowercase
 letters followed by three digits, retrying up to five times on collision.
 
-When **Allow customer-chosen username** is enabled on the product, the
-`desired_username` custom field is placed **on the order form** (optional, with
-a built-in `^[a-z0-9_-]{3,32}$` validation pattern) so the customer can pick
-their own username at checkout. The order-form timing is handled by the
-**Scaffold Configurable Options** button (or the next provision/reconcile),
-which prepares the field before any order is taken. When the option is
-disabled, `desired_username` is an internal admin-only field instead.
+The module auto-creates the field as
+`desired_username|Enter your desired username` (no spaces around the `|` — WHMCS
+does not trim it) — **admin-only and not on the order form by default**. To collect it from customers, an admin ticks
+*Show on Order Form* on that field (and enables **Allow customer-chosen
+username** so the module consults it). The module never moves the field on or
+off the form, so that manual choice is never reverted.
 
-Whoever sets it (customer at order, or an admin on the service), a non-empty
-`desired_username` is validated:
+The field is found by logical name regardless of its WHMCS label, so you may
+rename or relabel it freely. (WHMCS keys `customfields` by the text *after* a
+`|` in the field name — e.g. `Enter your desired username` — not by
+`desired_username`; the module resolves it tolerantly so this does not break
+the feature.)
+
+When **Allow customer-chosen username** is enabled, a non-empty
+`desired_username` (set by the customer at order, or by an admin on the
+service) is validated:
 
 - 3 to 32 characters.
 - Lowercase letters, digits, underscores, and hyphens only.
