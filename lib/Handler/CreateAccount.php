@@ -23,15 +23,21 @@ final class CreateAccount
     public function handle(array $params): string
     {
         $serviceId = Params::serviceId($params);
-        $missing = $this->probeMissing($serviceId);
-        if ($missing !== []) {
-            return "Custom field '" . implode("', '", $missing) . "' is not declared on this product. See README §Setup.";
-        }
 
         try {
             $pc = ProductConfig::fromParams($params);
         } catch (\InvalidArgumentException $e) {
             return 'Configuration error: ' . $e->getMessage();
+        }
+
+        // Create the custom fields the module needs if the admin hasn't,
+        // so the very first provisioning attempt self-heals instead of
+        // erroring out.
+        $this->ensureCustomFields($params, $pc->allowUserChosenUsername());
+
+        $missing = $this->probeMissing($serviceId);
+        if ($missing !== []) {
+            return "Custom field '" . implode("', '", $missing) . "' is not declared on this product. See README §Setup.";
         }
 
         $svcOptions = $this->normaliseConfigurableOptions($params['configoptions'] ?? []);

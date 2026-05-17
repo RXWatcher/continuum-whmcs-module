@@ -99,18 +99,20 @@ Set the module name to `continuum`, then configure:
 | Create default profile on CreateAccount | Recommended: enabled. |
 | Allow customer-chosen username | Enables the optional `desired_username` field. |
 
-On the product's `Custom Fields` tab, add these required service custom fields:
+The module **auto-creates** the service custom fields it needs the first
+time it provisions or reconciles a service on the product, so no manual
+setup is normally required:
 
-| Field Name | Type | Show on Order Form |
-| --- | --- | --- |
-| `continuum_user_id` | Text Box | No |
-| `continuum_library_names_cache` | Text Box | No |
+| Field Name | Type | Show on Order Form | Created |
+| --- | --- | --- | --- |
+| `continuum_user_id` | Text Box | No | Always |
+| `continuum_library_names_cache` | Text Box | No | Always |
+| `desired_username` | Text Box | Yes | Only when `Allow customer-chosen username` is enabled |
 
-If customer-chosen usernames are enabled, also add:
-
-| Field Name | Type | Show on Order Form |
-| --- | --- | --- |
-| `desired_username` | Text Box | Yes |
+Auto-creation is idempotent and never alters fields you created yourself.
+If you prefer to add them by hand (`Edit Product -> Custom Fields`),
+create the same fields with the Show-on-Order-Form values above; the
+module will detect and reuse them.
 
 ## Configurable Options
 

@@ -7,6 +7,7 @@ namespace Continuum\WhmcsModule\Handler;
 use Continuum\WhmcsModule\ContinuumApiException;
 use Continuum\WhmcsModule\HookContext;
 use Continuum\WhmcsModule\Identity\Params;
+use Continuum\WhmcsModule\Whmcs\CustomFieldProvisioner;
 
 /**
  * Shared helpers across all Handler/* classes. Each handler is constructed
@@ -44,6 +45,37 @@ trait HandlerHelpers
                     "continuum: failed to update continuum_user_id={$userId} for service "
                     . Params::serviceId($params) . ": " . $e->getMessage()
                 );
+            }
+        }
+    }
+
+    /**
+     * Auto-create the product custom fields the module relies on so
+     * admins don't have to add them by hand. Non-fatal: on failure the
+     * existing "custom field is not declared" guidance still applies.
+     */
+    protected function ensureCustomFields(array $params, bool $includeDesiredUsername): void
+    {
+        $fields = [
+            ['name' => 'continuum_user_id', 'adminonly' => true, 'showorder' => false,
+             'description' => 'Continuum user ID (managed by the continuum module)'],
+            ['name' => 'continuum_library_names_cache', 'adminonly' => true, 'showorder' => false,
+             'description' => 'Cached Continuum library names (managed by the continuum module)'],
+        ];
+        if ($includeDesiredUsername) {
+            $fields[] = ['name' => 'desired_username', 'adminonly' => false, 'showorder' => true,
+                         'description' => 'Desired Continuum username'];
+        }
+        try {
+            (new CustomFieldProvisioner())->ensure(
+                Params::serviceId($params),
+                (int)($params['pid'] ?? 0),
+                $fields
+            );
+        } catch (\Throwable $e) {
+            if (function_exists('logActivity')) {
+                logActivity('continuum: custom-field auto-provision failed for service '
+                    . Params::serviceId($params) . ': ' . $e->getMessage());
             }
         }
     }

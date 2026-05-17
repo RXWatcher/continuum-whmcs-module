@@ -103,6 +103,14 @@ class AttributeMapper
             $attrs['library_ids'] = null;
         }
 
+        // Transcoded downloads are meaningless without downloads. Keep
+        // them off whenever downloads are off — combined with the 'no'
+        // default on the config option, transcode-downloads are
+        // disabled by default and can't be on while downloads are off.
+        if ($attrs['download_allowed'] === false) {
+            $attrs['download_transcode_allowed'] = false;
+        }
+
         return $attrs;
     }
 

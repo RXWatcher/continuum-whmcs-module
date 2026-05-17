@@ -25,6 +25,10 @@ final class ChangePackage
             return 'Product config error: ' . $e->getMessage();
         }
 
+        // "Reconcile from WHMCS" routes here too, so this doubles as the
+        // manual fix for a product missing its custom fields.
+        $this->ensureCustomFields($params, $pc->allowUserChosenUsername());
+
         $userId = $this->ctx->identity()->resolve($params);
         if ($userId === null) {
             return 'No Continuum user is linked to this service.';
