@@ -260,7 +260,6 @@ ladyboy
 poofter
 fudgepacker
 buttpirate
-carpetmuncher
 
 # --- Ableist / other slurs ---
 retard
@@ -289,25 +288,21 @@ klansman
 whitepower
 whitepride
 whitepwr
-fourteenwords
 1488
 heil88
 bloodandsoil
 lynching
 slavemaster
 massshooter
-schoolshooter
 terrorist
 isis
 alqaeda
 jihad
-suicidebomber
 ovenjew
 gasthejews
 
 # --- Scam / impersonation / abuse ---
 admin
-administrator
 moderator
 sysadmin
 official
@@ -315,9 +310,6 @@ staff
 support
 helpdesk
 billing
-continuumstaff
-continuumadmin
-continuumsupport
 scammer
 phisher
 spammer
@@ -382,7 +374,6 @@ fuckk
 fukk
 fuckkk
 fucku2
-shitt
 shittt
 biatchh
 biotchh
