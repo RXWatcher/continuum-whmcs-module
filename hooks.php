@@ -20,6 +20,7 @@ add_hook('DailyCronJob', 1, function ($vars) {
         // The exact accessor is version-specific (Layer 12 item 6).
         $serverConfig = [
             'serverhostname' => $server->hostname,
+            'serverport' => $server->port,
             'serversecure' => $server->secure ? 'on' : '',
             'serverpassword' => decrypt($server->password),
             'reconcile_daily' => 'yes',  // we already filtered above
@@ -48,6 +49,7 @@ add_hook('ClientEdit', 1, function ($vars) {
         try {
             $cfg = ServerConfig::fromParams([
                 'serverhostname' => $server->hostname,
+                'serverport' => $server->port,
                 'serversecure' => $server->secure ? 'on' : '',
                 'serverpassword' => decrypt($server->password),
             ]);

@@ -1,7 +1,7 @@
 # WHMCS contract verification
 
-**Status: 5 of 7 items VERIFIED via developers.whmcs.com on 2026-05-13.**
-The remaining items (§3, §7) need confirmation against the target WHMCS
+**Status: 5 of 8 items VERIFIED via developers.whmcs.com on 2026-05-13.**
+The remaining items (§3, §7, §8) need confirmation against the target WHMCS
 install during the pre-deploy smoke (Phase 14.2).
 
 ## 1. `$params` shape per hook — VERIFIED ✓
@@ -97,12 +97,40 @@ actually reaches `ServerConfig::fromParams`.
 may need to live as a per-product `configoption12` or in a separate
 admin setting.
 
+## 8. `UpdateClientProduct` service-credential params + `serverport` — FIXED ✓ (verify pre-deploy)
+
+Citation: [WHMCS UpdateClientProduct](https://developers.whmcs.com/api-reference/updateclientproduct/) + [WHMCS Module Parameters](https://developers.whmcs.com/provisioning-modules/module-parameters/).
+
+Same gotcha family as §2 — `UpdateClientProduct` ignores unrecognised
+parameters and still returns `success`.
+
+- The service login is written via `serviceusername` / `servicepassword`,
+  **not** `username` / `password` / `serverpassword`. Previously
+  `CreateAccount` wrote `username` and `AdminResetPassword` wrote
+  `serverpassword`; both were silently dropped, so the WHMCS service
+  record never reflected the generated username or the reset password.
+  **Fix:** `CreateAccount::writeServiceUsername` now sends
+  `serviceusername`; `AdminResetPassword` now sends `servicepassword`.
+
+- `serverport` is read from `$params` (and from `tblservers.port` in the
+  cron/`ClientEdit` paths) and folded into the API base URL by
+  `ServerConfig::fromParams`. `MetaData` now declares
+  `DefaultNonSSLPort` / `DefaultSSLPort` so the server form populates a
+  sensible default instead of prompting for an empty port.
+
+**Risk / to verify:** confirm on the target WHMCS version that (a) the
+written `serviceusername` / `servicepassword` actually land on
+`tblhosting`, and (b) a non-default port set on the server form surfaces
+as `$params['serverport']`.
+
 ---
 
 ## Items still to verify pre-deploy
 
 - §3: the `customfield` dict shape on the target WHMCS version.
 - §7: the `reconcile_daily` server-form field surfacing.
+- §8: `serviceusername` / `servicepassword` write-back persists, and a
+  non-default server-form port surfaces as `$params['serverport']`.
 
-Both can be checked by running one CreateAccount and one daily-cron
-manually against staging and inspecting the result.
+All can be checked by running one CreateAccount, one Reset Password, and
+one daily-cron manually against staging and inspecting the result.

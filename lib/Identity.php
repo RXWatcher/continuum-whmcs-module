@@ -41,20 +41,29 @@ class Identity
             }
         }
 
-        $email = self::emailFromParams($params);
-        if ($email !== '') {
-            $user = $this->client->findUserByEmail($email);
-            if (is_array($user) && isset($user['id'])) {
-                return (int)$user['id'];
+        // Tiers 2 & 3 scan the full user list, which throws on any
+        // Continuum 4xx/5xx. Treat an unreachable API the same as "no
+        // match" so callers get the graceful "unresolved" path instead
+        // of an exception escaping the WHMCS hook — matching the
+        // deliberate tier-1 handling above.
+        try {
+            $email = self::emailFromParams($params);
+            if ($email !== '') {
+                $user = $this->client->findUserByEmail($email);
+                if (is_array($user) && isset($user['id'])) {
+                    return (int)$user['id'];
+                }
             }
-        }
 
-        $username = self::usernameFromParams($params);
-        if ($username !== '') {
-            $user = $this->client->findUserByUsername($username);
-            if (is_array($user) && isset($user['id'])) {
-                return (int)$user['id'];
+            $username = self::usernameFromParams($params);
+            if ($username !== '') {
+                $user = $this->client->findUserByUsername($username);
+                if (is_array($user) && isset($user['id'])) {
+                    return (int)$user['id'];
+                }
             }
+        } catch (ContinuumApiException $e) {
+            // Fall through to "unresolved".
         }
 
         return null;

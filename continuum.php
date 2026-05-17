@@ -28,6 +28,8 @@ function continuum_MetaData(): array
         'DisplayName' => 'Continuum',
         'APIVersion' => '1.1',
         'RequiresServer' => true,
+        'DefaultNonSSLPort' => '80',
+        'DefaultSSLPort' => '443',
     ];
 }
 

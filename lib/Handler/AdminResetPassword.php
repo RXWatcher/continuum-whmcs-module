@@ -35,7 +35,7 @@ final class AdminResetPassword
         try {
             localAPI('UpdateClientProduct', [
                 'serviceid' => Params::serviceId($params),
-                'serverpassword' => $password,
+                'servicepassword' => $password,
             ]);
         } catch (\Throwable $e) {
             return 'success (warning: failed to write back password to WHMCS service: ' . $e->getMessage() . ')';

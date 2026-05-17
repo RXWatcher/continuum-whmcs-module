@@ -157,7 +157,7 @@ final class CreateAccount
         try {
             localAPI('UpdateClientProduct', [
                 'serviceid' => Params::serviceId($params),
-                'username' => $username,
+                'serviceusername' => $username,
             ]);
         } catch (\Throwable $e) {
             if (function_exists('logActivity')) {

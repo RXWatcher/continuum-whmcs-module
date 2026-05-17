@@ -103,7 +103,14 @@ final class Hooks
         try {
             $ctx = $this->context($params);
         } catch (\InvalidArgumentException $e) {
-            return ['templatefile' => 'clientarea', 'vars' => ['error' => $e->getMessage()]];
+            // Configuration detail (e.g. "API key required") must not
+            // leak to customers — log it, show a generic message.
+            if (function_exists('logActivity')) {
+                logActivity('continuum: client area unavailable (config error): ' . $e->getMessage());
+            }
+            return ['templatefile' => 'clientarea', 'vars' => [
+                'error' => 'This service is temporarily unavailable. Please contact support.',
+            ]];
         }
         return (new ClientArea($ctx))->handle($params);
     }
