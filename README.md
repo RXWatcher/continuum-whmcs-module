@@ -218,7 +218,7 @@ When **Allow customer-chosen username** is enabled, a non-empty
 `desired_username` (set by the customer at order, or by an admin on the
 service) is validated:
 
-- 3 to 32 characters.
+- 3 to 12 characters.
 - Lowercase letters, digits, underscores, and hyphens only.
 - Not a reserved system name.
 - Not present in the blocked-word list.

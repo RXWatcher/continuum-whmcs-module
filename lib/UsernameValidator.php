@@ -6,7 +6,7 @@ namespace Continuum\WhmcsModule;
 
 final class UsernameValidator
 {
-    private const FORMAT = '/^[a-z0-9_-]{3,32}$/';
+    private const FORMAT = '/^[a-z0-9_-]{3,12}$/';
 
     /** Built-in reserved names. Operators can extend via the constructor. */
     private const BUILTIN_RESERVED = [
@@ -35,7 +35,7 @@ final class UsernameValidator
     public function validate(string $candidate): ?string
     {
         if (preg_match(self::FORMAT, $candidate) !== 1) {
-            return 'Username must be 3-32 lowercase letters, digits, underscores, or hyphens.';
+            return 'Username must be 3-12 lowercase letters, digits, underscores, or hyphens.';
         }
         if (isset($this->reserved[strtolower($candidate)])) {
             return 'That username is reserved.';

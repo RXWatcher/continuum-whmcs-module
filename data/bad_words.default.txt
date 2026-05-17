@@ -6,8 +6,8 @@
 # substring match, so common evasions (leetspeak, doubled letters,
 # underscores) are listed explicitly below.
 #
-# Usernames are limited to [a-z0-9_-], 3-32 chars, so only entries in
-# that character set can ever match.
+# Usernames are limited to [a-z0-9_-], 3-12 chars, so only entries in
+# that character set/length can ever match.
 #
 # To replace this list, drop a `bad_words.txt` next to continuum.php in
 # the installed module directory (it fully replaces this default).
