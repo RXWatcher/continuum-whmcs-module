@@ -1,8 +1,8 @@
 # WHMCS contract verification
 
-**Status: 5 of 8 items VERIFIED via developers.whmcs.com on 2026-05-13.**
-The remaining items (§3, §7, §8) need confirmation against the target WHMCS
-install during the pre-deploy smoke (Phase 14.2).
+**Status: 5 of 9 items VERIFIED via developers.whmcs.com on 2026-05-13.**
+The remaining items (§3, §7, §8, §9) need confirmation against the target
+WHMCS install during the pre-deploy smoke (Phase 14.2).
 
 ## 1. `$params` shape per hook — VERIFIED ✓
 
@@ -123,6 +123,37 @@ written `serviceusername` / `servicepassword` actually land on
 `tblhosting`, and (b) a non-default port set on the server form surfaces
 as `$params['serverport']`.
 
+## 9. Direct schema writes for auto-provisioning — FIXED ✓ (verify pre-deploy)
+
+WHMCS has no public API to create custom fields or configurable options,
+so the module writes the schema tables directly via `Capsule` — exactly
+what the WHMCS admin UI does. Assumptions to confirm on the target
+version:
+
+- `tblcustomfields` columns/semantics: `type='product'`,
+  `relid=<tblproducts.id>`, `fieldname`, `fieldtype='text'`,
+  `adminonly`/`showorder`/`required` are `'on'`/`''`, `regexpr` holds a
+  PHP-style regex, `created_at`/`updated_at` are non-null timestamps.
+  Used by `Whmcs\CustomFieldProvisioner`.
+- Configurable options span `tblproductconfiggroups` →
+  `tblproductconfigoptions` (`optiontype` 1=dropdown, 2=radio,
+  3=yes/no, 4=quantity; `order` column) → `tblproductconfigoptionssub`
+  → `tblpricing` (`type='configoptions'`, `relid=<sub.id>`, one row per
+  `tblcurrencies` id) → `tblproductconfiglinks` (`gid`,`pid`). Used by
+  `Whmcs\ConfigOptionScaffolder`.
+- The scaffolder reads `tblproducts.configoption10` as "Allow
+  customer-chosen username" — positional, matching `ProductConfig`'s
+  `configoption1..10` ordering. If `continuum_ConfigOptions()` order
+  changes, this index must change too.
+
+All writes are idempotent (match by name/keys) and never overwrite
+admin-set pricing or admin-created fields.
+
+**Risk / to verify:** confirm on the target WHMCS version that scaffolded
+options render on the order form and that an auto-created
+`desired_username` (when "Allow customer-chosen username" is on) appears
+on the order form with its validation pattern.
+
 ---
 
 ## Items still to verify pre-deploy
@@ -131,6 +162,10 @@ as `$params['serverport']`.
 - §7: the `reconcile_daily` server-form field surfacing.
 - §8: `serviceusername` / `servicepassword` write-back persists, and a
   non-default server-form port surfaces as `$params['serverport']`.
+- §9: scaffolded configurable options + auto-created custom fields render
+  correctly on the order form, and `configoption10` is still "Allow
+  customer-chosen username".
 
-All can be checked by running one CreateAccount, one Reset Password, and
-one daily-cron manually against staging and inspecting the result.
+All can be checked by running one CreateAccount, one Reset Password, one
+scaffold, and one daily-cron manually against staging and inspecting the
+result.
