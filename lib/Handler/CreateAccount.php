@@ -33,7 +33,7 @@ final class CreateAccount
         // Create the custom fields the module needs if the admin hasn't,
         // so the very first provisioning attempt self-heals instead of
         // erroring out.
-        $this->ensureCustomFields($params);
+        $this->ensureCustomFields($params, $pc->allowUserChosenUsername());
 
         $missing = $this->probeMissing($serviceId);
         if ($missing !== []) {

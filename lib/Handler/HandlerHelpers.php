@@ -54,13 +54,13 @@ trait HandlerHelpers
      * admins don't have to add them by hand. Non-fatal: on failure the
      * existing "custom field is not declared" guidance still applies.
      */
-    protected function ensureCustomFields(array $params): void
+    protected function ensureCustomFields(array $params, bool $customerChosenUsername): void
     {
         try {
             (new CustomFieldProvisioner())->ensure(
                 Params::serviceId($params),
                 (int)($params['pid'] ?? 0),
-                CustomFieldProvisioner::moduleFields()
+                CustomFieldProvisioner::moduleFields($customerChosenUsername)
             );
         } catch (\Throwable $e) {
             if (function_exists('logActivity')) {
