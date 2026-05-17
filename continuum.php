@@ -103,7 +103,8 @@ function continuum_ConfigOptions(): array
                 . ' and a later re-order re-links AND re-enables the SAME user — but only if it resolves'
                 . ' to the same Continuum server. Reactivating the same WHMCS service always does;'
                 . ' with a multi-server group a brand-new order may be routed to a different server,'
-                . ' where a fresh account is created and the old history is not recovered.'
+                . ' where a fresh account is created and the old history is not recovered'
+                . ' — unless the "Re-home returning customers" option below is enabled.'
                 . ' Suspend/Unsuspend never delete, regardless of this setting.',
         ],
         'auto_rehome_on_reorder' => [
