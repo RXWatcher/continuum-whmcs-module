@@ -94,6 +94,15 @@ class AttributeMapper
             }
         }
 
+        // Continuum treats library_ids = null as "all libraries" and an
+        // empty array as "no libraries" (verified in Continuum source:
+        // access/resolver.go LibrariesRestricted = user.LibraryIDs != nil).
+        // So when nothing is listed on the product or via configurable
+        // options, send null to grant all libraries — never [].
+        if ($attrs['library_ids'] === []) {
+            $attrs['library_ids'] = null;
+        }
+
         return $attrs;
     }
 

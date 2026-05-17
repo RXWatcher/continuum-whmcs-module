@@ -50,7 +50,8 @@ function continuum_ConfigOptions(): array
         'library_ids' => [
             'FriendlyName' => 'Library IDs',
             'Type' => 'text',
-            'Description' => 'Comma-separated continuum library IDs, e.g. 1,3,5',
+            'Description' => 'Comma-separated continuum library IDs, e.g. 1,3,5.'
+                . ' Leave blank to grant access to ALL libraries (including any added later).',
         ],
         'max_streams' => [
             'FriendlyName' => 'Max concurrent streams',

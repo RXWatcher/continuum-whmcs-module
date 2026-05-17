@@ -45,7 +45,13 @@ final class ClientArea
             if (!empty($user['last_active_at'])) {
                 $vars['last_seen_relative'] = $this->humanRelativeTime((string)$user['last_active_at']);
             }
-            $vars['library_names'] = $this->resolveLibraryNames($params, $user['library_ids'] ?? []);
+            // null library_ids means unrestricted access (all libraries),
+            // distinct from an empty list. Show that explicitly rather
+            // than a blank cell.
+            $libIds = $user['library_ids'] ?? null;
+            $vars['library_names'] = $libIds === null
+                ? ['All libraries']
+                : $this->resolveLibraryNames($params, $libIds);
         } catch (ContinuumApiException $e) {
             $vars['status'] = 'active (status unavailable)';
         }

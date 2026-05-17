@@ -89,7 +89,7 @@ Set the module name to `continuum`, then configure:
 | Field | Description |
 | --- | --- |
 | Role | Continuum role, usually `user`; `admin` is also accepted. |
-| Library IDs | Comma-separated Continuum library IDs, for example `1,3,5`. |
+| Library IDs | Comma-separated Continuum library IDs, for example `1,3,5`. Leave blank to grant **all** libraries (including any added to Continuum later). |
 | Max concurrent streams | Integer stream limit. |
 | Max concurrent transcodes | Integer transcode limit. |
 | Max profiles | Integer profile limit. |
@@ -138,6 +138,12 @@ case-insensitive, and punctuation is ignored.
 | `Library 3` | Checkbox | When checked, appends library ID `3`. |
 | `Library ID 3` | Checkbox | Same as `Library 3`. |
 | `Role` | Dropdown or radio | Sets role when the value is `user` or `admin`. |
+
+Library access is **all libraries unless something is listed**. If the
+product's `Library IDs` field is blank and no library configurable option
+contributes an ID, the customer gets every library (including ones added
+to Continuum later). As soon as any ID is listed — on the product field
+or via a configurable option — access is restricted to exactly that set.
 
 Examples:
 
