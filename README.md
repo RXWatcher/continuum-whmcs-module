@@ -357,14 +357,32 @@ Upload the resulting archive as the GitHub release asset.
 
 ## Development
 
-The public module is dependency-free. Basic syntax validation:
+The **shipped** module is dependency-free — Composer and PHPUnit are dev
+tooling only (`vendor/` is gitignored and never part of the release
+archive). Basic syntax validation:
 
 ```sh
 find . -path './.git' -prune -o -path './dist' -prune -o -name '*.php' -print -exec php -l {} \;
 ```
 
+### Test suite
+
+```sh
+composer install      # one-time; pulls PHPUnit into vendor/ (dev only)
+composer test         # or: vendor/bin/phpunit
+```
+
+Tests run with no WHMCS or Continuum install: `tests/Support/` shims the
+WHMCS runtime (`localAPI`, `Capsule`, `logActivity`, …) and a
+`FakeClient` stands in for the Continuum HTTP API, so handlers exercise
+the real `Identity`/`AttributeMapper`/`CustomFieldStore` code. Coverage
+focuses on the service-lifecycle handlers — in particular the
+status-aware `enabled` assertion in `CreateAccount`/`ChangePackage` (see
+`docs/whmcs-contracts.md` §1).
+
 Release validation should still include a staging WHMCS install before
-publishing the packaged archive.
+publishing the packaged archive — the suite does not replace the
+pre-deploy smoke in `docs/whmcs-contracts.md`.
 
 ## Security Notes
 
