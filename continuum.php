@@ -91,6 +91,19 @@ function continuum_ConfigOptions(): array
     ];
 }
 
+// === Server connection test (WHMCS Servers page) ===
+
+/**
+ * Backs the "Test Connection" button on System Settings -> Servers.
+ *
+ * @param array<string, mixed> $params
+ * @return array{success: bool, error: string}
+ */
+function continuum_TestConnection(array $params): array
+{
+    return (new Hooks())->testConnection($params);
+}
+
 // === Lifecycle hooks (Phase 6 onwards) ===
 
 function continuum_CreateAccount(array $params): string

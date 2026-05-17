@@ -12,6 +12,7 @@ use Continuum\WhmcsModule\Handler\ChangePassword;
 use Continuum\WhmcsModule\Handler\ClientArea;
 use Continuum\WhmcsModule\Handler\CreateAccount;
 use Continuum\WhmcsModule\Handler\SetEnabled;
+use Continuum\WhmcsModule\Handler\TestConnection;
 
 /**
  * Thin dispatch facade — wires WHMCS hook entry points to the per-event
@@ -36,6 +37,17 @@ final class Hooks
             return 'Configuration error: ' . $e->getMessage();
         }
         return (new CreateAccount($ctx))->handle($params);
+    }
+
+    /** @return array{success: bool, error: string} */
+    public function testConnection(array $params): array
+    {
+        try {
+            $ctx = $this->context($params);
+        } catch (\InvalidArgumentException $e) {
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+        return (new TestConnection($ctx))->handle();
     }
 
     public function suspendAccount(array $params): string

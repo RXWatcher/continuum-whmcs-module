@@ -68,10 +68,15 @@ server with these values:
 | --- | --- |
 | Name | Any descriptive name, for example `Continuum` |
 | Hostname | Your Continuum hostname, without `https://` |
+| Port | Continuum's port. Leave at `443` (Secure) / `80` for the default. |
 | Secure | Enabled for HTTPS |
 | Username | Unused; any value is acceptable |
 | Password / Access Hash | Continuum admin API key |
 | Module | `continuum` |
+
+After saving, use the **Test Connection** button on the Servers page to
+verify the hostname, port, TLS, and API key in one step. A failure
+message distinguishes an unreachable host from an authentication error.
 
 ## Product Setup
 

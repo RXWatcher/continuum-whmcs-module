@@ -117,10 +117,15 @@ final class Client implements ClientInterface
         return $query ? "{$path}?{$query}" : $path;
     }
 
-    /** @return array<int, array<string, mixed>> */
+    /**
+     * Note: libraries live at /api/v1/libraries, NOT under /api/v1/admin
+     * (verified against a live Continuum instance — the /admin path 404s).
+     *
+     * @return array<int, array<string, mixed>>
+     */
     public function listLibraries(): array
     {
-        $res = $this->jsonRequest('GET', '/api/v1/admin/libraries', null);
+        $res = $this->jsonRequest('GET', '/api/v1/libraries', null);
         return is_array($res) ? $res : [];
     }
 
@@ -155,11 +160,51 @@ final class Client implements ClientInterface
      */
     private function rawRequest(string $method, string $path, ?string $body): array
     {
-        if (function_exists('curl_init')) {
-            return $this->curlRequest($method, $path, $body);
+        try {
+            $res = function_exists('curl_init')
+                ? $this->curlRequest($method, $path, $body)
+                : $this->streamRequest($method, $path, $body);
+        } catch (\Throwable $e) {
+            $this->logCall($method, $path, $body, null, $e->getMessage());
+            throw $e;
+        }
+        $this->logCall($method, $path, $body, $res, null);
+        return $res;
+    }
+
+    /**
+     * Record the call in WHMCS's Module Log (Utilities -> Logs -> Module
+     * Log) so opaque failures are diagnosable. The API key and any
+     * payload password are passed as replace-vars so WHMCS masks them —
+     * module logs are sensitive (see README Security Notes).
+     *
+     * @param array{status: int, body: string, headers: array<string, string[]>}|null $res
+     */
+    private function logCall(string $method, string $path, ?string $body, ?array $res, ?string $error): void
+    {
+        if (!function_exists('logModuleCall')) {
+            return;
+        }
+        $url = $this->cfg->baseUrl() . $path;
+        $request = $method . ' ' . $url . ($body !== null ? "\n" . $body : '');
+        $response = $error !== null
+            ? 'NETWORK ERROR: ' . $error
+            : 'HTTP ' . $res['status'] . "\n" . substr($res['body'], 0, 5000);
+
+        $mask = [$this->cfg->apiKey()];
+        if ($body !== null) {
+            $decoded = json_decode($body, true);
+            if (is_array($decoded) && isset($decoded['password'])
+                && is_string($decoded['password']) && $decoded['password'] !== '') {
+                $mask[] = $decoded['password'];
+            }
         }
 
-        return $this->streamRequest($method, $path, $body);
+        try {
+            logModuleCall('continuum', $method . ' ' . $path, $request, $response, '', $mask);
+        } catch (\Throwable $e) {
+            // Logging must never break the request path.
+        }
     }
 
     /**
