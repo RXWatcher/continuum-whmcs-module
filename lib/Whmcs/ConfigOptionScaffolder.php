@@ -154,7 +154,6 @@ final class ConfigOptionScaffolder
             ['name' => 'Downloads Allowed', 'type' => 3, 'subs' => ['Yes']],
             ['name' => 'Download Transcode Allowed', 'type' => 3, 'subs' => ['Yes']],
             ['name' => 'Max Playback Quality', 'type' => 1, 'subs' => ['Unrestricted', '1080p', '4k']],
-            ['name' => 'Role', 'type' => 1, 'subs' => ['user', 'admin']],
         ];
 
         // Per-library opt-in checkboxes. AttributeMapper matches the

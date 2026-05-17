@@ -13,7 +13,7 @@ use Continuum\WhmcsModule\Tests\Support\TestCase;
 
 /**
  * Multi-server auto-re-home (config option auto_rehome_on_reorder /
- * configoption12). The assigned server is id 1; the customer's existing
+ * configoption11). The assigned server is id 1; the customer's existing
  * Continuum user lives on server 2.
  */
 final class CreateAccountRehomeTest extends TestCase
@@ -42,7 +42,7 @@ final class CreateAccountRehomeTest extends TestCase
     private function params(array $overrides = []): array
     {
         return Context::params(array_replace_recursive(
-            ['serverid' => 1, 'configoption12' => 'on'],
+            ['serverid' => 1, 'configoption11' => 'on'],
             $overrides
         ));
     }
@@ -118,7 +118,7 @@ final class CreateAccountRehomeTest extends TestCase
         $registry = Context::serverRegistry(['key1' => $assigned, 'key2' => $other]);
 
         $result = (new CreateAccount(Context::make($assigned, $registry)))
-            ->handle($this->params(['configoption12' => '']));
+            ->handle($this->params(['configoption11' => '']));
 
         self::assertSame('success', $result);
         self::assertTrue($assigned->called('createUser'));

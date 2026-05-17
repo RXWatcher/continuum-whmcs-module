@@ -8,7 +8,6 @@ use Continuum\WhmcsModule\PlaybackQuality;
 
 final class ProductConfig
 {
-    private string $role;
     /** @var int[] */
     private array $libraryIds;
     private int $maxStreams;
@@ -22,7 +21,6 @@ final class ProductConfig
 
     private function __construct(array $a)
     {
-        $this->role = $a['role'];
         $this->libraryIds = $a['libraryIds'];
         $this->maxStreams = $a['maxStreams'];
         $this->maxTranscodes = $a['maxTranscodes'];
@@ -37,15 +35,7 @@ final class ProductConfig
     /** @param array<string, mixed> $params */
     public static function fromParams(array $params): self
     {
-        $role = (string)($params['configoption1'] ?? 'user');
-        if ($role === '') {
-            $role = 'user';
-        }
-        if (!in_array($role, ['user', 'admin'], true)) {
-            throw new \InvalidArgumentException("Invalid role '{$role}', must be 'user' or 'admin'");
-        }
-
-        $libRaw = (string)($params['configoption2'] ?? '');
+        $libRaw = (string)($params['configoption1'] ?? '');
         $libraryIds = [];
         foreach (explode(',', $libRaw) as $tok) {
             $tok = trim($tok);
@@ -59,16 +49,15 @@ final class ProductConfig
         }
 
         return new self([
-            'role' => $role,
             'libraryIds' => $libraryIds,
-            'maxStreams' => self::readInt($params, 'configoption3', 6),
-            'maxTranscodes' => self::readInt($params, 'configoption4', 2),
-            'maxProfiles' => self::readInt($params, 'configoption5', 5),
-            'downloadAllowed' => self::readYesNo($params, 'configoption6', true),
-            'downloadTranscodeAllowed' => self::readYesNo($params, 'configoption7', false),
+            'maxStreams' => self::readInt($params, 'configoption2', 6),
+            'maxTranscodes' => self::readInt($params, 'configoption3', 2),
+            'maxProfiles' => self::readInt($params, 'configoption4', 5),
+            'downloadAllowed' => self::readYesNo($params, 'configoption5', true),
+            'downloadTranscodeAllowed' => self::readYesNo($params, 'configoption6', false),
             'maxPlaybackQuality' => self::readQuality($params),
-            'createDefaultProfile' => self::readYesNo($params, 'configoption9', true),
-            'allowUserChosenUsername' => self::readYesNo($params, 'configoption10', false),
+            'createDefaultProfile' => self::readYesNo($params, 'configoption8', true),
+            'allowUserChosenUsername' => self::readYesNo($params, 'configoption9', false),
         ]);
     }
 
@@ -86,24 +75,24 @@ final class ProductConfig
 
     /**
      * Whether terminating the WHMCS service should DELETE the Continuum
-     * user (vs. only disabling it). configoption11, default ON. Read
+     * user (vs. only disabling it). configoption10, default ON. Read
      * standalone — no full ProductConfig validation — so an unrelated
      * config error can never block a termination.
      */
     public static function deleteOnTerminate(array $params): bool
     {
-        return self::readYesNo($params, 'configoption11', true);
+        return self::readYesNo($params, 'configoption10', true);
     }
 
     /**
      * Whether a new order should be re-homed to a server that already
-     * hosts this customer's Continuum user (multi-server). configoption12,
+     * hosts this customer's Continuum user (multi-server). configoption11,
      * default OFF. Read standalone like deleteOnTerminate so it never
      * passes through validation that could block provisioning.
      */
     public static function autoRehome(array $params): bool
     {
-        return self::readYesNo($params, 'configoption12', false);
+        return self::readYesNo($params, 'configoption11', false);
     }
 
     private static function readYesNo(array $params, string $key, bool $default): bool
@@ -120,12 +109,7 @@ final class ProductConfig
         // Canonicalise to what Continuum enforces ('', 1080p, 4k).
         // Legacy 720p/480p product settings degrade to 1080p rather than
         // failing provisioning (that is Continuum's real behaviour).
-        return PlaybackQuality::canonical((string)($params['configoption8'] ?? ''));
-    }
-
-    public function role(): string
-    {
-        return $this->role;
+        return PlaybackQuality::canonical((string)($params['configoption7'] ?? ''));
     }
 
     /** @return int[] */

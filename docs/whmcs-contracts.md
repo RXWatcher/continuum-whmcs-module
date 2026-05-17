@@ -113,9 +113,9 @@ actually reaches `ServerConfig::fromParams`.
 
 **Risk:** if WHMCS doesn't surface extra named server fields, the flag
 may need to live as a per-product config option or in a separate admin
-setting. (Note: `configoption11`/`12` are now taken by
-`delete_on_terminate` / `auto_rehome_on_reorder`; the next free slot is
-`configoption13`.)
+setting. (Note: there is no `role` option — every user is provisioned as
+`user`. `configoption10`/`11` are taken by `delete_on_terminate` /
+`auto_rehome_on_reorder`; the next free slot is `configoption12`.)
 
 ## 8. `UpdateClientProduct` service-credential params + `serverport` — FIXED ✓ (verify pre-deploy)
 
@@ -188,7 +188,7 @@ a customer-entered value when an admin has enabled Show on Order Form.
 
 Citation: [WHMCS UpdateClientProduct](https://developers.whmcs.com/api-reference/updateclientproduct/) + [WHMCS Module Parameters](https://developers.whmcs.com/provisioning-modules/module-parameters/).
 
-Opt-in (`configoption12`, default OFF). When ON, `CreateAccount` may
+Opt-in (`configoption11`, default OFF). When ON, `CreateAccount` may
 move a service to the Continuum server that already hosts the returning
 customer, then re-link the existing user instead of creating a fresh
 account. Contract assumptions on the target WHMCS version:
@@ -236,8 +236,9 @@ pointer row exists, and a follow-up hook (e.g. Suspend) operates on A.
 - §8: `serviceusername` / `servicepassword` write-back persists, and a
   non-default server-form port surfaces as `$params['serverport']`.
 - §9: scaffolded configurable options + auto-created custom fields render
-  correctly on the order form, and `configoption10` is still "Allow
-  customer-chosen username".
+  correctly on the order form, and `configoption9` is still "Allow
+  customer-chosen username" (no `role` option; numbering starts at
+  `library_ids` = `configoption1`).
 - §1: the `enabled`-state assertion. (a) Terminate a service with
   `delete_on_terminate=OFF`, re-order on the **same** server, and confirm
   the Continuum user comes back **enabled** — not merely relinked. (b) Run

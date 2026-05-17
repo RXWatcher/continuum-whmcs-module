@@ -14,7 +14,6 @@ final class ProductConfigTest extends TestCase
     {
         $pc = ProductConfig::fromParams([]);
 
-        self::assertSame('user', $pc->role());
         self::assertSame([], $pc->libraryIds());
         self::assertSame(6, $pc->maxStreams());
         self::assertSame(2, $pc->maxTranscodes());
@@ -26,30 +25,21 @@ final class ProductConfigTest extends TestCase
         self::assertFalse($pc->allowUserChosenUsername());
     }
 
-    public function testRoleValidation(): void
-    {
-        self::assertSame('admin', ProductConfig::fromParams(['configoption1' => 'admin'])->role());
-        self::assertSame('user', ProductConfig::fromParams(['configoption1' => ''])->role());
-
-        $this->expectException(\InvalidArgumentException::class);
-        ProductConfig::fromParams(['configoption1' => 'superuser']);
-    }
-
     public function testLibraryIdsParsing(): void
     {
         self::assertSame(
             [1, 3, 5],
-            ProductConfig::fromParams(['configoption2' => ' 1, 3 ,5 '])->libraryIds()
+            ProductConfig::fromParams(['configoption1' => ' 1, 3 ,5 '])->libraryIds()
         );
 
         $this->expectException(\InvalidArgumentException::class);
-        ProductConfig::fromParams(['configoption2' => '1,abc']);
+        ProductConfig::fromParams(['configoption1' => '1,abc']);
     }
 
     public function testNonIntegerLimitThrows(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        ProductConfig::fromParams(['configoption3' => 'lots']);
+        ProductConfig::fromParams(['configoption2' => 'lots']);
     }
 
     #[DataProvider('yesNoCases')]
@@ -57,7 +47,7 @@ final class ProductConfigTest extends TestCase
     {
         self::assertSame(
             $expected,
-            ProductConfig::fromParams(['configoption6' => $raw])->downloadAllowed()
+            ProductConfig::fromParams(['configoption5' => $raw])->downloadAllowed()
         );
     }
 
@@ -69,21 +59,27 @@ final class ProductConfigTest extends TestCase
             ['1', true],
             ['no', false],
             ['0', false],
-            ['', true], // empty → default (configoption6 default is true)
+            ['', true], // empty → default (downloads default is true)
         ];
     }
 
     public function testDeleteOnTerminateDefaultsOn(): void
     {
         self::assertTrue(ProductConfig::deleteOnTerminate([]));
-        self::assertTrue(ProductConfig::deleteOnTerminate(['configoption11' => 'on']));
-        self::assertFalse(ProductConfig::deleteOnTerminate(['configoption11' => 'no']));
+        self::assertTrue(ProductConfig::deleteOnTerminate(['configoption10' => 'on']));
+        self::assertFalse(ProductConfig::deleteOnTerminate(['configoption10' => 'no']));
+    }
+
+    public function testAutoRehomeDefaultsOff(): void
+    {
+        self::assertFalse(ProductConfig::autoRehome([]));
+        self::assertTrue(ProductConfig::autoRehome(['configoption11' => 'on']));
     }
 
     public function testPlaybackQualityIsCanonicalised(): void
     {
-        self::assertSame('1080p', ProductConfig::fromParams(['configoption8' => '720p'])->maxPlaybackQuality());
-        self::assertSame('4k', ProductConfig::fromParams(['configoption8' => '2160p'])->maxPlaybackQuality());
-        self::assertSame('', ProductConfig::fromParams(['configoption8' => ''])->maxPlaybackQuality());
+        self::assertSame('1080p', ProductConfig::fromParams(['configoption7' => '720p'])->maxPlaybackQuality());
+        self::assertSame('4k', ProductConfig::fromParams(['configoption7' => '2160p'])->maxPlaybackQuality());
+        self::assertSame('', ProductConfig::fromParams(['configoption7' => ''])->maxPlaybackQuality());
     }
 }

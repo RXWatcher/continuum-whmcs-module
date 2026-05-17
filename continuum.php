@@ -40,13 +40,10 @@ function continuum_MetaData(): array
  */
 function continuum_ConfigOptions(): array
 {
+    // Note: every Continuum user is provisioned with role 'user'. The
+    // module deliberately exposes no role switch (admin accounts are not
+    // sold). Options below map to configoption1..N by position.
     return [
-        'role' => [
-            'FriendlyName' => 'Role',
-            'Type' => 'dropdown',
-            'Options' => 'user,admin',
-            'Default' => 'user',
-        ],
         'library_ids' => [
             'FriendlyName' => 'Library IDs',
             'Type' => 'text',

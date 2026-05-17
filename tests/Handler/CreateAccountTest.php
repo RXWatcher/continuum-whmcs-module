@@ -92,7 +92,7 @@ final class CreateAccountTest extends TestCase
         $client = new FakeClient();
         $client->usersByUsername['cooluser'] = ['id' => 9]; // desired handle taken
         $params = Context::params([
-            'configoption10' => 'on', // allow customer-chosen username
+            'configoption9' => 'on', // allow customer-chosen username
             'customfields' => ['desired_username' => 'cooluser'],
         ]);
 
@@ -107,7 +107,7 @@ final class CreateAccountTest extends TestCase
         $client = new FakeClient();
         $client->createUserQueue[] = ['id' => 101];
         $params = Context::params([
-            'configoption10' => 'on',
+            'configoption9' => 'on',
             'customfields' => ['desired_username' => 'cooluser'],
         ]);
 

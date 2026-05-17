@@ -26,8 +26,8 @@ final class ConfigOptionScaffolderTest extends TestCase
         self::assertContains('link -> product 10', $r['created']);
 
         self::assertCount(1, FakeWhmcs::rows('tblproductconfiggroups'));
-        // The 8 base option specs (no libraries supplied).
-        self::assertCount(8, FakeWhmcs::rows('tblproductconfigoptions'));
+        // The 7 base option specs (no libraries supplied).
+        self::assertCount(7, FakeWhmcs::rows('tblproductconfigoptions'));
         self::assertNotEmpty(FakeWhmcs::rows('tblpricing'), '0.00 pricing rows created');
         self::assertCount(1, FakeWhmcs::rows('tblproductconfiglinks'));
 
@@ -47,7 +47,7 @@ final class ConfigOptionScaffolderTest extends TestCase
 
         // No duplication.
         self::assertCount(1, FakeWhmcs::rows('tblproductconfiggroups'));
-        self::assertCount(8, FakeWhmcs::rows('tblproductconfigoptions'));
+        self::assertCount(7, FakeWhmcs::rows('tblproductconfigoptions'));
         self::assertCount(1, FakeWhmcs::rows('tblproductconfiglinks'));
     }
 
@@ -58,7 +58,7 @@ final class ConfigOptionScaffolderTest extends TestCase
         ]);
 
         $names = array_column(FakeWhmcs::rows('tblproductconfigoptions'), 'optionname');
-        self::assertCount(9, $names); // 8 base + 1 library
+        self::assertCount(8, $names); // 7 base + 1 library
         // Name must be exactly "Library 3" — AttributeMapper matches
         // /^library (id )?N$/, the human name must not leak in.
         self::assertContains('Library 3', $names);

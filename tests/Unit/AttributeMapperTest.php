@@ -20,7 +20,7 @@ final class AttributeMapperTest extends TestCase
     {
         $attrs = $this->map([]);
 
-        self::assertSame('user', $attrs['role']);
+        self::assertSame('user', $attrs['role'], 'role is fixed to user, not configurable');
         self::assertNull($attrs['library_ids'], 'no libraries listed → null = ALL');
         self::assertSame(6, $attrs['max_streams']);
         self::assertSame(2, $attrs['max_transcodes']);
@@ -31,7 +31,7 @@ final class AttributeMapperTest extends TestCase
 
     public function testProductLibraryIdsAreParsed(): void
     {
-        $attrs = $this->map(['configoption2' => '1, 3 ,5']);
+        $attrs = $this->map(['configoption1' => '1, 3 ,5']);
         self::assertSame([1, 3, 5], $attrs['library_ids']);
     }
 
@@ -50,8 +50,8 @@ final class AttributeMapperTest extends TestCase
     public function testTranscodeDownloadsForcedOffWhenDownloadsOff(): void
     {
         $attrs = $this->map([
-            'configoption6' => 'no',  // downloads off
-            'configoption7' => 'yes', // transcode-downloads on (should be neutralised)
+            'configoption5' => 'no',  // downloads off
+            'configoption6' => 'yes', // transcode-downloads on (should be neutralised)
         ]);
         self::assertFalse($attrs['download_allowed']);
         self::assertFalse($attrs['download_transcode_allowed']);
@@ -65,7 +65,7 @@ final class AttributeMapperTest extends TestCase
 
     public function testPerLibraryToggleAppendsLibraryId(): void
     {
-        $attrs = $this->map(['configoption2' => '1'], [['name' => 'Library 5', 'value' => 'yes']]);
+        $attrs = $this->map(['configoption1' => '1'], [['name' => 'Library 5', 'value' => 'yes']]);
         self::assertSame([1, 5], $attrs['library_ids']);
     }
 }

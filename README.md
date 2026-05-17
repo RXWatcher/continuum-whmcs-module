@@ -97,9 +97,11 @@ For each WHMCS product that should provision Continuum accounts, open:
 
 Set the module name to `continuum`, then configure:
 
+Every Continuum user is provisioned with the `user` role — the module
+sells no admin accounts, so role is fixed and not a configurable field.
+
 | Field | Description |
 | --- | --- |
-| Role | Continuum role, usually `user`; `admin` is also accepted. |
 | Library IDs | Comma-separated Continuum library IDs, e.g. `1,3,5`. Leave blank to grant **all** libraries (including any added to Continuum later). |
 | Max concurrent streams | Integer stream limit. |
 | Max concurrent transcodes | Integer transcode limit. |
@@ -146,7 +148,7 @@ On any Continuum-backed service, the **Scaffold Configurable Options** admin
 button creates a `Continuum Options` group with a curated starter set —
 `Extra Streams`, `Extra Transcodes`, `Extra Profiles` (quantity),
 `4K Streaming`, `Downloads Allowed`, `Download Transcode Allowed` (yes/no),
-`Max Playback Quality` and `Role` (dropdown), plus a `Library N` opt-in
+`Max Playback Quality` (dropdown), plus a `Library N` opt-in
 checkbox for each live Continuum library — **with `0.00` pricing in every
 currency**, and links it to every continuum product. (It does not create every
 recognized name below — e.g. the `Max Streams`/`Max Transcodes`/`Max Profiles`
@@ -174,7 +176,6 @@ optional upsells whose pricing the module must not invent.)
 | `Libraries` | Dropdown / radio / quantity | Same as `Library IDs` (aliases: `Library Access`, `Library Pack`). |
 | `Library 3` | Checkbox | When checked, appends library ID `3`. **Use these for per-library opt-in** — one checkbox per library lets customers enable libraries individually. |
 | `Library ID 3` | Checkbox | Same as `Library 3`. |
-| `Role` | Dropdown or radio | Sets role when the value is `user` or `admin`. |
 
 Library access is **all libraries unless something is listed**. If the
 product's `Library IDs` field is blank and no library configurable option

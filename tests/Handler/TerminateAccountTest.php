@@ -26,7 +26,7 @@ final class TerminateAccountTest extends TestCase
         $client = new FakeClient();
         $client->usersById[60] = ['id' => 60];
 
-        // configoption11 unset → deleteOnTerminate defaults ON.
+        // configoption10 unset → deleteOnTerminate defaults ON.
         $result = (new TerminateAccount(Context::make($client)))->handle($this->params());
 
         self::assertSame('success', $result);
@@ -40,7 +40,7 @@ final class TerminateAccountTest extends TestCase
         $client->usersById[60] = ['id' => 60];
 
         $result = (new TerminateAccount(Context::make($client)))
-            ->handle($this->params(['configoption11' => 'no']));
+            ->handle($this->params(['configoption10' => 'no']));
 
         self::assertSame('success', $result);
         self::assertFalse($client->called('deleteUser'));

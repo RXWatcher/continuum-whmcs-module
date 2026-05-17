@@ -19,7 +19,10 @@ class AttributeMapper
     public function apply(ProductConfig $pc, array $serviceOptions): array
     {
         $attrs = [
-            'role' => $pc->role(),
+            // Every Continuum user is a 'user'. Continuum's createUser
+            // requires a role, and the module sells no admin accounts, so
+            // this is fixed and intentionally not configurable.
+            'role' => 'user',
             'library_ids' => $pc->libraryIds(),
             'max_streams' => $pc->maxStreams(),
             'max_transcodes' => $pc->maxTranscodes(),
@@ -33,12 +36,6 @@ class AttributeMapper
             $name = $this->normaliseName((string)($opt['name'] ?? ''));
             $value = trim((string)($opt['value'] ?? ''));
             if ($name === '') {
-                continue;
-            }
-
-            $lowerValue = strtolower($value);
-            if ($name === 'role' && in_array($lowerValue, ['user', 'admin'], true)) {
-                $attrs['role'] = $lowerValue;
                 continue;
             }
 
