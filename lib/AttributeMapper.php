@@ -103,6 +103,12 @@ class AttributeMapper
             $attrs['library_ids'] = null;
         }
 
+        // Continuum rejects max_profiles < 1 (400). Clamp so a 0/blank
+        // product setting can't hard-fail provisioning.
+        if (($attrs['max_profiles'] ?? 0) < 1) {
+            $attrs['max_profiles'] = 1;
+        }
+
         // Transcoded downloads are meaningless without downloads. Keep
         // them off whenever downloads are off — combined with the 'no'
         // default on the config option, transcode-downloads are
