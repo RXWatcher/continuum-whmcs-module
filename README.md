@@ -99,20 +99,26 @@ Set the module name to `continuum`, then configure:
 | Create default profile on CreateAccount | Recommended: enabled. |
 | Allow customer-chosen username | Enables the optional `desired_username` field. |
 
-The module **auto-creates** the service custom fields it needs the first
-time it provisions or reconciles a service on the product, so no manual
-setup is normally required:
+The module **auto-creates** the service custom fields it needs, so no
+manual setup is required. All three are **internal admin-only** fields,
+**never shown on the order form** and never WHMCS-"Required" — there are
+no custom fields a customer must fill in:
 
-| Field Name | Type | Show on Order Form | Created |
-| --- | --- | --- | --- |
-| `continuum_user_id` | Text Box | No | Always |
-| `continuum_library_names_cache` | Text Box | No | Always |
-| `desired_username` | Text Box | Yes | Only when `Allow customer-chosen username` is enabled |
+| Field Name | Purpose |
+| --- | --- |
+| `continuum_user_id` | Continuum linkage — written by the module |
+| `continuum_library_names_cache` | Library-name cache — written by the module |
+| `desired_username` | Optional admin-set username; blank → auto-generated |
 
-Auto-creation is idempotent and never alters fields you created yourself.
-If you prefer to add them by hand (`Edit Product -> Custom Fields`),
-create the same fields with the Show-on-Order-Form values above; the
-module will detect and reuse them.
+They are created the first time the module provisions or reconciles a
+service on the product, and immediately for every continuum product when
+the **Scaffold Configurable Options** admin button is used (handy for a
+product that has no service yet). Auto-creation is idempotent and never
+alters fields you created yourself.
+
+`desired_username` is not collected from customers at order time. When
+`Allow customer-chosen username` is enabled, an admin may set that field
+on the service; if it is blank the module generates a username.
 
 ## Configurable Options
 
@@ -165,9 +171,10 @@ disabled.
 By default, the module generates usernames in the form `abcd123`: four
 lowercase letters followed by three digits.
 
-If `Allow customer-chosen username` is enabled and the product has a
-`desired_username` custom field, customers may provide a username during order.
-The module validates:
+If `Allow customer-chosen username` is enabled, a username set in the
+service's admin-only `desired_username` custom field is used instead of a
+generated one. (The field is not shown on the order form.) The module
+validates the chosen username:
 
 - 3 to 32 characters.
 - Lowercase letters, digits, underscores, and hyphens only.

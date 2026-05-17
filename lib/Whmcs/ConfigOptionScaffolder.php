@@ -54,10 +54,15 @@ final class ConfigOptionScaffolder
             }
         }
 
-        // Link the group to every continuum product.
+        // For every continuum product: link the group and ensure the
+        // internal custom fields exist (so a product with no provisioned
+        // service yet is fully prepped from this one action).
         $productIds = Capsule::table('tblproducts')
             ->where('servertype', 'continuum')->pluck('id');
+        $cf = new CustomFieldProvisioner();
         foreach ($productIds as $pid) {
+            $cf->ensure(0, (int)$pid, CustomFieldProvisioner::moduleFields());
+
             $linked = Capsule::table('tblproductconfiglinks')
                 ->where('gid', $gid)->where('pid', $pid)->exists();
             if ($linked) {
@@ -66,6 +71,9 @@ final class ConfigOptionScaffolder
             }
             Capsule::table('tblproductconfiglinks')->insert(['gid' => $gid, 'pid' => $pid]);
             $created[] = "link -> product {$pid}";
+        }
+        if (count($productIds) > 0) {
+            $created[] = 'custom fields ensured on ' . count($productIds) . ' product(s)';
         }
 
         return ['group' => self::GROUP_NAME, 'created' => $created, 'skipped' => $skipped];

@@ -21,6 +21,25 @@ use WHMCS\Database\Capsule;
 final class CustomFieldProvisioner
 {
     /**
+     * The internal custom fields the module relies on. All admin-only
+     * and never on the order form — including desired_username, which is
+     * admin-set (blank => the module generates a username).
+     *
+     * @return array<int, array{name: string, adminonly: bool, showorder: bool, description: string}>
+     */
+    public static function moduleFields(): array
+    {
+        return [
+            ['name' => 'continuum_user_id', 'adminonly' => true, 'showorder' => false,
+             'description' => 'Continuum user ID (managed by the continuum module)'],
+            ['name' => 'continuum_library_names_cache', 'adminonly' => true, 'showorder' => false,
+             'description' => 'Cached Continuum library names (managed by the continuum module)'],
+            ['name' => 'desired_username', 'adminonly' => true, 'showorder' => false,
+             'description' => 'Optional admin-set Continuum username (blank = auto-generated)'],
+        ];
+    }
+
+    /**
      * @param array<int, array{name: string, adminonly: bool, showorder: bool, description?: string}> $fields
      */
     public function ensure(int $serviceId, int $productId, array $fields): void
