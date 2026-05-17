@@ -27,6 +27,15 @@ final class CreateAccountRehomeTest extends TestCase
             ['id' => 2, 'type' => 'continuum', 'hostname' => 'srv2', 'port' => '',
              'secure' => 0, 'password' => 'key2', 'disabled' => 0],
         ]);
+        // The service row the move re-points (serviceid 7, on server 1).
+        FakeWhmcs::seedTable('tblhosting', [
+            ['id' => 7, 'server' => 1, 'domainstatus' => 'Active', 'packageid' => 3],
+        ]);
+    }
+
+    private function serverOfService7(): int
+    {
+        return (int)(FakeWhmcs::rows('tblhosting')[0]['server'] ?? 0);
     }
 
     /** @return array<string, mixed> */
@@ -51,12 +60,15 @@ final class CreateAccountRehomeTest extends TestCase
         self::assertSame('success', $result);
         self::assertFalse($assigned->called('createUser'), 'must not create a fresh account');
 
-        // Service moved to server 2.
+        // WHMCS API attempted with serverid…
         $moves = array_filter(
             FakeWhmcs::apiCalls('UpdateClientProduct'),
             static fn($p) => isset($p['serverid'])
         );
         self::assertSame(2, array_values($moves)[0]['serverid']);
+        // …and the service row actually ends up on server 2 (the verified
+        // direct-DB fallback guarantees it even if the API ignores serverid).
+        self::assertSame(2, $this->serverOfService7());
 
         // Existing user re-enabled on its home server.
         self::assertSame([77, true], [
@@ -134,7 +146,28 @@ final class CreateAccountRehomeTest extends TestCase
         );
     }
 
-    public function testReHomeMoveFailureReturnsErrorNotASilentFreshAccount(): void
+    public function testDbFallbackMovesServiceWhenWhmcsApiIgnoresServerid(): void
+    {
+        // The realistic worry: UpdateClientProduct "succeeds" but does not
+        // re-point the service. The verified direct-DB fallback must still
+        // complete the move (no error, history preserved).
+        $assigned = new FakeClient();
+        $other = new FakeClient();
+        $other->usersByEmail['jane@example.com'] = ['id' => 77, 'username' => 'h'];
+        $registry = Context::serverRegistry(['key1' => $assigned, 'key2' => $other]);
+
+        FakeWhmcs::$localApiHandler = static fn(string $a) => null; // API no-ops
+
+        $result = (new CreateAccount(Context::make($assigned, $registry)))
+            ->handle($this->params());
+
+        self::assertSame('success', $result);
+        self::assertSame(2, $this->serverOfService7(), 'direct-DB fallback completed the move');
+        self::assertTrue($other->called('updateUser'));
+        self::assertFalse($assigned->called('createUser'));
+    }
+
+    public function testMoveFailsLoudlyWhenBothApiAndDbFail(): void
     {
         $assigned = new FakeClient();
         $assigned->createUserQueue[] = ['id' => 999];
@@ -142,12 +175,14 @@ final class CreateAccountRehomeTest extends TestCase
         $other->usersByEmail['jane@example.com'] = ['id' => 77];
         $registry = Context::serverRegistry(['key1' => $assigned, 'key2' => $other]);
 
+        // API throws AND the direct tblhosting write throws.
         FakeWhmcs::$localApiHandler = static function (string $action) {
             if ($action === 'UpdateClientProduct') {
                 throw new \RuntimeException('whmcs move failed');
             }
             return null;
         };
+        FakeWhmcs::$throwForTable = 'tblhosting';
 
         $result = (new CreateAccount(Context::make($assigned, $registry)))
             ->handle($this->params());

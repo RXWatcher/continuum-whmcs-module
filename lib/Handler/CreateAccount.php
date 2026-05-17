@@ -167,18 +167,9 @@ final class CreateAccount
         }
 
         if ($home['serverId'] !== $this->assignedServerId($params)) {
-            try {
-                $resp = localAPI('UpdateClientProduct', [
-                    'serviceid' => Params::serviceId($params),
-                    'serverid' => $home['serverId'],
-                ]);
-            } catch (\Throwable $e) {
-                return 'Re-home failed: could not move service to server '
-                    . $home['serverId'] . ': ' . $e->getMessage();
-            }
-            if (($resp['result'] ?? '') !== 'success') {
-                return 'Re-home failed: WHMCS did not move service to server '
-                    . $home['serverId'] . ' (' . json_encode($resp) . ')';
+            $moveError = $this->moveServiceToServer($params, $home['serverId']);
+            if ($moveError !== null) {
+                return $moveError;
             }
         }
 
@@ -205,6 +196,57 @@ final class CreateAccount
             );
         }
         return 'success';
+    }
+
+    /**
+     * Move the WHMCS service to $targetServerId. Tries WHMCS's own
+     * UpdateClientProduct first (it does related bookkeeping); some WHMCS
+     * versions ignore `serverid` there, so the move is then verified and,
+     * if it didn't take, forced with a direct tblhosting write. Returns
+     * null on success, or a descriptive error if the move can't be made
+     * (so re-home fails loudly rather than orphaning history).
+     */
+    private function moveServiceToServer(array $params, int $targetServerId): ?string
+    {
+        $serviceId = Params::serviceId($params);
+
+        try {
+            localAPI('UpdateClientProduct', [
+                'serviceid' => $serviceId,
+                'serverid' => $targetServerId,
+            ]);
+        } catch (\Throwable $e) {
+            // Preferred path unavailable — the direct write below is the
+            // guarantee; only its failure is fatal.
+        }
+
+        if ($this->currentServer($serviceId) !== $targetServerId) {
+            try {
+                Capsule::table('tblhosting')
+                    ->where('id', $serviceId)
+                    ->update(['server' => $targetServerId]);
+            } catch (\Throwable $e) {
+                return 'Re-home failed: could not move service ' . $serviceId
+                    . ' to server ' . $targetServerId . ': ' . $e->getMessage();
+            }
+        }
+
+        if ($this->currentServer($serviceId) !== $targetServerId) {
+            return 'Re-home failed: service ' . $serviceId
+                . ' did not move to server ' . $targetServerId;
+        }
+        return null;
+    }
+
+    private function currentServer(int $serviceId): int
+    {
+        try {
+            return (int)Capsule::table('tblhosting')
+                ->where('id', $serviceId)
+                ->value('server');
+        } catch (\Throwable $e) {
+            return 0;
+        }
     }
 
     private function assignedServerId(array $params): int

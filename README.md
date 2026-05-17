@@ -276,9 +276,11 @@ whose user can't be resolved on the assigned server triggers a cross-server
 lookup (every active continuum-typed WHMCS server, by email then username,
 cached in a `mod_continuum_home` pointer table). If the customer's existing
 Continuum user is found on another server, the WHMCS service is **moved to
-that server** (`UpdateClientProduct` with `serverid`) and the existing user is
-re-linked and re-enabled — preserving profiles and watch history — instead of
-creating a fresh account.
+that server** and the existing user is re-linked and re-enabled — preserving
+profiles and watch history — instead of creating a fresh account. The move
+tries WHMCS's `UpdateClientProduct` (`serverid`) first, then **verifies it and
+falls back to a direct `tblhosting` write** if that WHMCS version ignores the
+parameter — so it works regardless of version.
 
 - A genuine new customer (found nowhere) is created normally; the chosen home
   is recorded so future re-orders are deterministic and cheap.

@@ -107,6 +107,29 @@ final class FakeQueryBuilder
         return array_map(static fn(array $r) => $r[$column] ?? null, $this->matching());
     }
 
+    /** @param array<string, mixed> $values @return int affected rows */
+    public function update(array $values): int
+    {
+        $rows = &FakeWhmcs::$tables[$this->table];
+        $rows ??= [];
+        $n = 0;
+        foreach ($rows as &$row) {
+            $match = true;
+            foreach ($this->eq as $k => $v) {
+                if (!array_key_exists($k, $row) || (string)$row[$k] !== (string)$v) {
+                    $match = false;
+                    break;
+                }
+            }
+            if ($match) {
+                $row = array_merge($row, $values);
+                $n++;
+            }
+        }
+        unset($row);
+        return $n;
+    }
+
     /**
      * @param array<string, mixed> $attributes
      * @param array<string, mixed> $values
