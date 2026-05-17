@@ -1,9 +1,10 @@
 # WHMCS contract verification
 
 **Status: 5 of the original 9 items VERIFIED via developers.whmcs.com on
-2026-05-13.** §10 (multi-server re-home) was added later. The remaining
-items (§3, §7, §8, §9, §10) need confirmation against the target WHMCS
-install during the pre-deploy smoke (Phase 14.2).
+2026-05-13.** §10 (multi-server re-home) and §11 (client-area enrichment
++ self-service) were added later. The remaining items (§3, §7, §8, §9,
+§10, §11) need confirmation against the target WHMCS install during the
+pre-deploy smoke (Phase 14.2).
 
 ## 1. `$params` shape per hook — VERIFIED ✓
 
@@ -94,7 +95,13 @@ Citation: [WHMCS Client Area Output](https://developers.whmcs.com/provisioning-m
 ```
 
 Resolves to `modules/servers/<modulename>/templates/clientarea.tpl`. The
-module's existing return shape matches.
+module's existing return shape matches. The enriched template only adds
+`vars` keys (username, plan, profiles, watching-now, member-since); the
+contract shape is unchanged. The client-area self-service button is
+registered via `ClientAreaCustomButtonArray` and its handler
+(`continuum_clientarea_resetpw`) returns a status string — the same
+contract as the admin custom buttons in §4 (verify the button renders
+and its returned message displays on the target theme/version).
 
 ## 6. `ClientEdit` hook payload — VERIFIED ✓
 
@@ -227,6 +234,32 @@ ends up on **A**, the existing Continuum user is re-enabled with history
 intact, no fresh account was created on B, the `mod_continuum_home`
 pointer row exists, and a follow-up hook (e.g. Suspend) operates on A.
 
+## 11. Client-area enrichment + self-service — FIXED ✓ (verify pre-deploy)
+
+Citation: Continuum admin API (`/opt/continuum` router) + [WHMCS Client Area Output](https://developers.whmcs.com/provisioning-modules/client-area-output/).
+
+The client area now reads two extra admin endpoints and exposes a
+self-service action. Assumptions to confirm on the target Continuum
+version:
+
+- **Endpoints.** `GET /api/v1/admin/users/{id}/profiles` → `[{id,name}]`;
+  `GET /api/v1/admin/sessions` → server-wide playback rows including
+  `user_id` and `client_ip`. The handler filters to the linked user and
+  surfaces only titles/counts — **`client_ip`/bitrates are never sent to
+  the customer**. Each call degrades independently (a failure blanks only
+  that row, never the page). **Verify:** both endpoints exist and return
+  those shapes; the page renders with one or both unavailable.
+- **Password reset = sign-out-everywhere.** The self-service button
+  changes the password via admin `updateUser`, which Continuum treats as
+  session-revoking (`updateRequiresSessionRevocation` is true when
+  `password` is set). **Verify:** after a client-area reset, a
+  previously-authenticated Continuum session is actually rejected — this
+  is the claim shown to the customer.
+- **Cost.** Up to ~3 admin-API calls per client-area view (`getUser` +
+  profiles + sessions; library names stay 24h-cached). `/admin/sessions`
+  is server-wide and filtered client-side — fine at normal volume; note
+  if a server-side `?user_id=` filter becomes necessary at scale.
+
 ---
 
 ## Items still to verify pre-deploy
@@ -251,8 +284,14 @@ pointer row exists, and a follow-up hook (e.g. Suspend) operates on A.
   written, follow-up hook operates on A); `tblservers.disabled`
   semantics; `decrypt()` callable from `CreateAccount`; `Capsule::schema()`
   can create `mod_continuum_home` (or the DB user can).
+- §11: client area renders with the profiles/sessions endpoints present
+  AND with each unavailable (independent degradation); `client_ip` never
+  appears; the self-service "reset password & sign out" button renders,
+  returns its message on the theme, and a live Continuum session is
+  actually rejected afterward.
 
 All can be checked by running one CreateAccount, one Reset Password, one
 scaffold, one daily-cron, one terminate→same-server re-order, one
-reconcile-on-Suspended, and one multi-server re-order (re-home) manually
-against staging and inspecting the result.
+reconcile-on-Suspended, one multi-server re-order (re-home), and one
+client-area view + self-service reset manually against staging and
+inspecting the result.

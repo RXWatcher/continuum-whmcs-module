@@ -25,8 +25,9 @@ from the WHMCS service page.
 - **Test Connection** button on the Servers page.
 - Every Continuum API call recorded in the WHMCS Module Log with secrets
   masked.
-- Show Continuum status in the WHMCS admin service tab and a customer-facing
-  panel in the client area.
+- Show Continuum status in the WHMCS admin service tab, and a customer-facing
+  client-area panel (plan, profiles, live streams) with a self-service
+  "reset password & sign out everywhere" action.
 - Optional WHMCS daily cron hook that logs basic drift.
 
 ## Requirements
@@ -242,7 +243,7 @@ default list in `data/bad_words.default.txt`.
 | UnsuspendAccount | Sets `enabled = true`. |
 | TerminateAccount | **Default: deletes the Continuum user** (profiles + watch history). If "Delete Continuum user on termination" is OFF, only sets `enabled = false` and retains everything. |
 | ChangePackage / Upgrade / Reconcile | Re-applies all product + configurable-option attributes to Continuum. |
-| ChangePassword / Reset Password | Updates the Continuum user's password. |
+| ChangePassword / Reset Password | Updates the Continuum user's password. Continuum revokes all of that user's sessions on a password change, so this also signs them out everywhere. |
 
 Termination is governed by the **Delete Continuum user on termination** product
 option (**default ON**):
@@ -320,7 +321,9 @@ On a Continuum-backed WHMCS service, staff can use:
 - `Reconcile from WHMCS`: pushes the current WHMCS product and configurable
   option state to Continuum (also ensures custom fields exist).
 - `Reset Password`: generates a strong password, updates Continuum, and writes
-  it back to the WHMCS service password (WHMCS-encrypted).
+  it back to the WHMCS service password (WHMCS-encrypted). Also signs the
+  customer out of all devices (Continuum revokes sessions on a password
+  change). Customers can self-serve the same action from the client area.
 - `Scaffold Configurable Options`: see [Configurable Options](#configurable-options).
 
 ## Client Area
@@ -433,8 +436,9 @@ WHMCS runtime (`localAPI`, `Capsule`, `logActivity`, …) and a
 `FakeClient` stands in for the Continuum HTTP API, so handlers exercise
 the real `Identity`/`AttributeMapper`/`CustomFieldStore` code. Coverage
 spans every service-lifecycle and admin handler (Create/Change/
-Terminate/SetEnabled, ChangePassword, AdminResetPassword, TestConnection,
-ClientArea, AdminServicesTab, ScaffoldOptions) and the pure logic
+Terminate/SetEnabled, ChangePassword, AdminResetPassword,
+ClientResetPassword, TestConnection, ClientArea, AdminServicesTab,
+ScaffoldOptions) and the pure logic
 (Identity, AttributeMapper, ProductConfig/ServerConfig, PlaybackQuality,
 Username validation/generation, BadWordList, DriftCheck,
 ConfigOptionScaffolder) — including the status-aware `enabled` assertion
@@ -457,9 +461,13 @@ publishing the packaged archive — see the pre-deploy smoke in
   header to Continuum.
 - **User passwords** are not stored at rest by the module. On CreateAccount /
   ChangePassword the password is forwarded from WHMCS to Continuum in memory
-  only. `Reset Password` writes the new password back to the WHMCS service
-  password field, which WHMCS stores encrypted — that is the only persistence,
-  and it is WHMCS's standard encrypted store, not a module-specific one.
+  only. Both the admin `Reset Password` button and the customer's client-area
+  "reset password & sign out" action write the new password back to the WHMCS
+  service password field, which WHMCS stores encrypted — that is the only
+  persistence, and it is WHMCS's standard encrypted store, not a
+  module-specific one. The client-area action additionally shows the new
+  password once in the returned confirmation message (so the customer can
+  capture it); it is not persisted anywhere else by the module.
 - In the Module Log the API key and payload passwords are masked.
 - Passwords are unavoidably cleartext in memory during a request and in transit
   over HTTPS to Continuum.
