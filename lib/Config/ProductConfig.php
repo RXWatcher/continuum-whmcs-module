@@ -84,6 +84,17 @@ final class ProductConfig
         return (int)$raw;
     }
 
+    /**
+     * Whether terminating the WHMCS service should DELETE the Continuum
+     * user (vs. only disabling it). configoption11, default ON. Read
+     * standalone — no full ProductConfig validation — so an unrelated
+     * config error can never block a termination.
+     */
+    public static function deleteOnTerminate(array $params): bool
+    {
+        return self::readYesNo($params, 'configoption11', true);
+    }
+
     private static function readYesNo(array $params, string $key, bool $default): bool
     {
         $raw = trim((string)($params[$key] ?? ''));

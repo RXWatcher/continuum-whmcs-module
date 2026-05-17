@@ -8,8 +8,8 @@ from the WHMCS service page.
 ## Features
 
 - Create Continuum users when WHMCS provisions a service.
-- Suspend, unsuspend, and terminate services by toggling the Continuum user's
-  `enabled` state. **Terminate disables, it does not delete** — see
+- Suspend and unsuspend by toggling the Continuum user's `enabled` state.
+  **Terminate deletes the Continuum user by default** (configurable) — see
   [Service Lifecycle](#service-lifecycle).
 - Reconcile Continuum attributes from WHMCS product settings and configurable
   options.
@@ -109,6 +109,7 @@ Set the module name to `continuum`, then configure:
 | Max playback quality | Blank for unrestricted, or `1080p`, or `4k`. Continuum only enforces these three; legacy `720p`/`480p` behave as `1080p`. |
 | Create default profile on CreateAccount | Recommended: enabled. Continuum creates one ready-to-use viewing profile inside the new account; if it can't, Continuum rolls back the user. With it off, the customer logs in to an empty account and must create a profile. |
 | Allow customer-chosen username | See [Username Behavior](#username-behavior). |
+| Delete Continuum user on termination | **Default ON.** ON: terminating the service permanently deletes the Continuum user (profiles + watch history; cannot be undone). OFF: termination only disables the user (data retained, re-order re-links). |
 
 ### Custom fields (auto-created)
 
@@ -224,16 +225,24 @@ default list in `data/bad_words.default.txt`.
 | CreateAccount | Creates the user (or re-attaches an existing one), applies all attributes, optionally creates a default profile. |
 | SuspendAccount | Sets the Continuum user `enabled = false`. |
 | UnsuspendAccount | Sets `enabled = true`. |
-| TerminateAccount | Sets `enabled = false`. **The Continuum user, profiles, and watch history are retained.** |
+| TerminateAccount | **Default: deletes the Continuum user** (profiles + watch history). If "Delete Continuum user on termination" is OFF, only sets `enabled = false` and retains everything. |
 | ChangePackage / Upgrade / Reconcile | Re-applies all product + configurable-option attributes to Continuum. |
 | ChangePassword / Reset Password | Updates the Continuum user's password. |
 
-**Terminate does not delete the Continuum user** — it is functionally identical
-to Suspend. Upside: a returning customer keeps their history (re-linked by
-email/username on the next CreateAccount). Downside: terminated accounts and
-their data persist in Continuum until an admin deletes them there manually,
-which is a data-retention/GDPR consideration. There is no module option to
-delete on termination; removal is a deliberate manual action in Continuum.
+Termination is governed by the **Delete Continuum user on termination** product
+option (**default ON**):
+
+- **ON (default):** the Continuum user is permanently deleted on terminate —
+  profiles and watch history included. This **cannot be undone**. A user that
+  is already gone (HTTP 404) is treated as success; if no user is linked,
+  termination still succeeds.
+- **OFF:** terminate only disables the user (functionally identical to
+  Suspend). The account and history are retained, and a returning customer is
+  re-linked by email/username on the next CreateAccount. Removal then requires
+  a deliberate manual action in Continuum — a data-retention/GDPR
+  consideration.
+
+Suspend and Unsuspend never delete, regardless of this option.
 
 ## Linkage And Recovery
 

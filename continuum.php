@@ -94,6 +94,14 @@ function continuum_ConfigOptions(): array
             'Description' => 'If yes, customers can pick their handle via the order-form "desired_username"'
                 . ' custom field. If no, every account gets a generated abcd232-style username.',
         ],
+        'delete_on_terminate' => [
+            'FriendlyName' => 'Delete Continuum user on termination',
+            'Type' => 'yesno', 'Default' => 'on',
+            'Description' => 'ON (default): terminating this WHMCS service PERMANENTLY DELETES the'
+                . ' Continuum user, including their profiles and watch history. This cannot be undone.'
+                . ' OFF: termination only disables the Continuum user (account and history are kept,'
+                . ' and re-ordering re-links them). Suspend/Unsuspend never delete, regardless of this setting.',
+        ],
     ];
 }
 

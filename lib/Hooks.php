@@ -13,6 +13,7 @@ use Continuum\WhmcsModule\Handler\ClientArea;
 use Continuum\WhmcsModule\Handler\CreateAccount;
 use Continuum\WhmcsModule\Handler\ScaffoldOptions;
 use Continuum\WhmcsModule\Handler\SetEnabled;
+use Continuum\WhmcsModule\Handler\TerminateAccount;
 use Continuum\WhmcsModule\Handler\TestConnection;
 
 /**
@@ -63,7 +64,12 @@ final class Hooks
 
     public function terminateAccount(array $params): string
     {
-        return $this->setEnabled($params, false);
+        try {
+            $ctx = $this->context($params);
+        } catch (\InvalidArgumentException $e) {
+            return 'Configuration error: ' . $e->getMessage();
+        }
+        return (new TerminateAccount($ctx))->handle($params);
     }
 
     public function changePassword(array $params): string
