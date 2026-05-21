@@ -44,7 +44,16 @@ final class CreateAccount
         $svcOptions = $this->normaliseConfigurableOptions($params['configoptions'] ?? []);
         $attrs = $this->ctx->mapper()->apply($pc, $svcOptions);
 
-        $existingId = $this->ctx->identity()->resolve($params);
+        // Strict resolve: a transient Continuum outage during the scan
+        // could otherwise look like "no existing user", and we'd then
+        // create a duplicate the customer never asked for. Better to
+        // fail this hook cleanly and let WHMCS retry it.
+        try {
+            $existingId = $this->ctx->identity()->resolve($params, strict: true);
+        } catch (ContinuumApiException $e) {
+            return $this->humanError($e)
+                . ' (refusing to create a duplicate user; retry once Continuum is reachable)';
+        }
         if ($existingId !== null) {
             try {
                 // A CreateAccount always means "this account should exist and
@@ -110,7 +119,11 @@ final class CreateAccount
                 if ($this->isDuplicateUsernameError($e)) {
                     return "Username '{$username}' is already taken. Choose another.";
                 }
-                return $this->humanError($e);
+                $user = $this->recoverFromCreateError($e, $email);
+                if ($user === null) {
+                    return $this->humanError($e);
+                }
+                // username was set above
             }
         } else {
             for ($attempt = 1; $attempt <= 5; $attempt++) {
@@ -121,6 +134,14 @@ final class CreateAccount
                 } catch (ContinuumApiException $e) {
                     if ($this->isDuplicateUsernameError($e)) {
                         continue;
+                    }
+                    // Recovery before retrying: a transient failure on
+                    // createUser may have actually created the user;
+                    // retrying generates a new name and would duplicate.
+                    $user = $this->recoverFromCreateError($e, $email);
+                    if ($user !== null) {
+                        $username = (string)($user['username'] ?? $username);
+                        break;
                     }
                     return $this->humanError($e);
                 }
@@ -221,6 +242,16 @@ final class CreateAccount
         }
 
         if ($this->currentServer($serviceId) !== $targetServerId) {
+            // WHMCS's UpdateClientProduct silently ignored `serverid` on
+            // this version. Log the fallback so the next operator
+            // wondering "what moved this service" sees it in the audit
+            // log rather than chasing a phantom DB edit.
+            if (function_exists('logActivity')) {
+                logActivity(
+                    'continuum: UpdateClientProduct did not re-point service '
+                    . $serviceId . '; forcing tblhosting.server -> ' . $targetServerId
+                );
+            }
             try {
                 Capsule::table('tblhosting')
                     ->where('id', $serviceId)
@@ -327,5 +358,43 @@ final class CreateAccount
                 );
             }
         }
+    }
+
+    /**
+     * Idempotency net for createUser. A network blip or 5xx after the
+     * user was actually created on Continuum's side would otherwise let
+     * us re-create (different username, duplicate account, orphan
+     * history). On a transient failure (status 0 = network, or 5xx),
+     * look the user up by email — if it now exists, treat the original
+     * call as having succeeded and link to the recovered record.
+     *
+     * Returns null if the failure is not recoverable; the caller should
+     * then propagate the original error.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function recoverFromCreateError(ContinuumApiException $e, string $email): ?array
+    {
+        if ($e->httpStatus() !== 0 && $e->httpStatus() < 500) {
+            return null;
+        }
+        if ($email === '') {
+            return null;
+        }
+        try {
+            $recovered = $this->ctx->client()->findUserByEmail($email);
+        } catch (\Throwable $_) {
+            return null;
+        }
+        if (!is_array($recovered) || !isset($recovered['id'])) {
+            return null;
+        }
+        if (function_exists('logActivity')) {
+            logActivity(
+                'continuum: recovered duplicate-create on transient error for '
+                . $email . ' -> user ' . (int)$recovered['id']
+            );
+        }
+        return $recovered;
     }
 }

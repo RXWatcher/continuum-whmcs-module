@@ -6,6 +6,7 @@ namespace Continuum\WhmcsModule\Tests\Unit;
 
 use Continuum\WhmcsModule\ContinuumApiException;
 use Continuum\WhmcsModule\Identity;
+use Continuum\WhmcsModule\Identity\Params;
 use Continuum\WhmcsModule\Tests\Support\Context;
 use Continuum\WhmcsModule\Tests\Support\FakeClient;
 use Continuum\WhmcsModule\Tests\Support\TestCase;
@@ -93,6 +94,89 @@ final class IdentityTest extends TestCase
         self::assertNull($id, 'an API outage must not let an exception escape the hook');
     }
 
+    public function testTier1RejectsUserWhoseEmailDoesNotMatchWhmcsClient(): void
+    {
+        // Stale / hand-edited continuum_user_id points at a DIFFERENT
+        // customer. Without verification, every subsequent write (email
+        // rename, password reset, …) would hit the wrong account. The
+        // resolve must fall through to tier 2 (email lookup) instead.
+        $client = new FakeClient();
+        $client->usersById[42] = ['id' => 42, 'email' => 'someone-else@example.com'];
+        $client->usersByEmail['jane@example.com'] = ['id' => 9, 'email' => 'jane@example.com'];
+
+        $id = (new Identity($client))->resolve(Context::params([
+            'customfields' => ['continuum_user_id' => '42'],
+        ]));
+
+        self::assertSame(9, $id, 'must heal via tier-2 email lookup');
+    }
+
+    public function testTier1AcceptsUserWhenEmailMatchesCaseInsensitively(): void
+    {
+        $client = new FakeClient();
+        $client->usersById[42] = ['id' => 42, 'email' => 'JANE@example.com'];
+
+        $id = (new Identity($client))->resolve(Context::params([
+            'customfields' => ['continuum_user_id' => '42'],
+            'clientsdetails' => ['email' => 'jane@example.com'],
+        ]));
+
+        self::assertSame(42, $id);
+        self::assertFalse($client->called('findUserByEmail'), 'tier 1 verified; no fallback needed');
+    }
+
+    public function testTier1AcceptsUserWhoseRecordHasNoEmailField(): void
+    {
+        // Legacy / partial Continuum responses may omit the email key.
+        // Treat as unverifiable rather than wrong, so the module keeps
+        // working against older Continuum builds.
+        $client = new FakeClient();
+        $client->usersById[42] = ['id' => 42];
+
+        $id = (new Identity($client))->resolve(Context::params([
+            'customfields' => ['continuum_user_id' => '42'],
+        ]));
+
+        self::assertSame(42, $id);
+    }
+
+    public function testStrictResolveReThrowsOnTier2ApiOutage(): void
+    {
+        $client = new FakeClient();
+        $client->findUserByEmailError = new ContinuumApiException('5xx', 503);
+
+        $this->expectException(ContinuumApiException::class);
+        (new Identity($client))->resolve(Context::params(), strict: true);
+    }
+
+    public function testStrictResolveStillFallsThroughOnTier1404(): void
+    {
+        // 404 on getUser is the expected "stale ID" path — strict mode
+        // must still let tier 2/3 heal a stale custom field.
+        $client = new FakeClient();
+        $client->getUserError = new ContinuumApiException('not found', 404);
+        $client->usersByEmail['jane@example.com'] = ['id' => 12, 'email' => 'jane@example.com'];
+
+        $id = (new Identity($client))->resolve(
+            Context::params(['customfields' => ['continuum_user_id' => '5']]),
+            strict: true
+        );
+
+        self::assertSame(12, $id);
+    }
+
+    public function testStrictResolveReThrowsOnTier1ServerError(): void
+    {
+        $client = new FakeClient();
+        $client->getUserError = new ContinuumApiException('server error', 502);
+
+        $this->expectException(ContinuumApiException::class);
+        (new Identity($client))->resolve(
+            Context::params(['customfields' => ['continuum_user_id' => '5']]),
+            strict: true
+        );
+    }
+
     public function testStaticExtractors(): void
     {
         $params = Context::params([
@@ -101,10 +185,10 @@ final class IdentityTest extends TestCase
             'username' => '  svc  ',
         ]);
 
-        self::assertSame(42, Identity::idFromParams($params));
-        self::assertSame('jane@ex.com', Identity::emailFromParams($params));
-        self::assertSame('svc', Identity::usernameFromParams($params));
-        self::assertNull(Identity::idFromParams(
+        self::assertSame(42, Params::continuumUserId($params));
+        self::assertSame('jane@ex.com', Params::email($params));
+        self::assertSame('svc', Params::username($params));
+        self::assertNull(Params::continuumUserId(
             Context::params(['customfields' => ['continuum_user_id' => 'NaN']])
         ));
     }

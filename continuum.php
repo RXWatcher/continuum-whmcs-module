@@ -93,7 +93,7 @@ function continuum_ConfigOptions(): array
         ],
         'delete_on_terminate' => [
             'FriendlyName' => 'Delete Continuum user on termination',
-            'Type' => 'yesno', 'Default' => 'on',
+            'Type' => 'yesno', 'Default' => 'yes',
             'Description' => 'ON (default): terminating this WHMCS service PERMANENTLY DELETES the'
                 . ' Continuum user, including their profiles and watch history. This cannot be undone.'
                 . ' OFF: termination only disables the Continuum user; the account and history are kept,'

@@ -42,24 +42,58 @@ final class AdminServicesTabTest extends TestCase
         self::assertStringContainsString('Continuum unreachable', $out['Continuum status']);
     }
 
-    public function testRendersUserSummaryAndDeepLink(): void
+    public function testRendersFullUserSummaryAndDeepLink(): void
     {
         $client = new FakeClient();
         $client->usersById[7] = [
             'id' => 7,
+            'username' => 'janex',
             'email' => 'jane@example.com',
             'enabled' => true,
             'role' => 'user',
             'library_ids' => [1, 2],
             'max_streams' => 6,
+            'max_transcodes' => 2,
+            'max_profiles' => 5,
+            'download_allowed' => true,
+            'download_transcode_allowed' => false,
+            'max_playback_quality' => '1080p',
+            'last_active_at' => '2026-01-15T12:34:56Z',
         ];
 
         $html = (new AdminServicesTab(Context::make($client)))->handle($this->params())['Continuum status'];
 
+        // Identity + state.
         self::assertStringContainsString('<strong>User ID</strong>', $html);
         self::assertStringContainsString('jane@example.com', $html);
-        self::assertStringContainsString('&#10003; Yes', $html); // enabled tick
+        self::assertStringContainsString('janex', $html);
+        self::assertStringContainsString('&#10003; Yes', $html);
+
+        // All plan fields surfaced so admins can verify a reconcile.
+        self::assertStringContainsString('Transcode limit', $html);
+        self::assertStringContainsString('Profile limit', $html);
+        self::assertStringContainsString('Downloads', $html);
+        self::assertStringContainsString('Download transcode', $html);
+        self::assertStringContainsString('Max playback quality', $html);
+        self::assertStringContainsString('Up to 1080p', $html);
+        self::assertStringContainsString('Last seen', $html);
+
         self::assertStringContainsString('https://continuum.test/admin/users/7', $html);
         self::assertStringContainsString('target="_blank"', $html);
+    }
+
+    public function testUnrestrictedLibrariesRenderExplicitly(): void
+    {
+        // `library_ids` absent (or null) means "all libraries". The
+        // explicit label avoids the visual ambiguity of a blank cell.
+        $client = new FakeClient();
+        $client->usersById[7] = [
+            'id' => 7, 'email' => 'jane@example.com', 'enabled' => true, 'role' => 'user',
+            // library_ids deliberately absent.
+        ];
+
+        $html = (new AdminServicesTab(Context::make($client)))->handle($this->params())['Continuum status'];
+
+        self::assertStringContainsString('All libraries (unrestricted)', $html);
     }
 }

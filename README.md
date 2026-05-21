@@ -28,12 +28,13 @@ from the WHMCS service page.
 - Show Continuum status in the WHMCS admin service tab, and a customer-facing
   client-area panel (plan, profiles, live streams) with a self-service
   "reset password & sign out everywhere" action.
-- Optional WHMCS daily cron hook that logs basic drift.
+- WHMCS daily cron hook that logs drift across every attribute (limits,
+  libraries, downloads, playback quality, enabled state).
 
 ## Requirements
 
 - WHMCS 8.x.
-- PHP 8.0 or newer.
+- PHP 8.1 or newer.
 - PHP JSON extension.
 - PHP cURL extension, or `allow_url_fopen` enabled for HTTPS streams.
 - Outbound HTTPS access from WHMCS to the Continuum server.
@@ -291,20 +292,46 @@ parameter — so it works regardless of version.
 - Users only reachable on a disabled server fall back to a fresh account.
 - No effect with a single server or a shared Continuum backend.
 
+The home pointer is kept in sync with reality automatically: a terminate
+with "Delete Continuum user on termination" ON drops the pointer (no
+account left to re-home to), and a WHMCS `ClientEdit` email rename moves
+the pointer to the new email key (so multi-server re-home keeps probing
+the right server for that customer). If WHMCS's `UpdateClientProduct`
+ignores `serverid` on your version and the module falls back to a direct
+`tblhosting.server` write, that fallback is logged to the activity log so
+the audit trail explains what re-pointed the service.
+
 ## Linkage And Recovery
 
 Each WHMCS service is linked to Continuum through three signals, checked in
 order:
 
-1. `continuum_user_id` service custom field.
+1. `continuum_user_id` service custom field — **verified**: the returned
+   user's email must match the WHMCS client email (case-insensitive). A
+   stale or hand-edited ID pointing at a different customer falls through
+   to tier 2 instead of letting subsequent writes (rename, password
+   reset, suspend) hit the wrong account. Continuum responses that omit
+   the email field are treated as unverifiable and accepted.
 2. WHMCS client email, lowercased.
 3. WHMCS service username.
 
 When a hook finds a user through a fallback signal it repairs
 `continuum_user_id`. Successful updates also push the WHMCS email and service
 username back to Continuum, making WHMCS the source of truth for those fields.
-A transient Continuum API error during fallback resolution is treated as
-"unresolved" rather than crashing the hook.
+
+Failure handling differs by handler intent:
+
+- **Display / idempotent paths** (`ClientArea`, `AdminServicesTab`,
+  `SetEnabled`, `ChangePackage`, etc.) treat a Continuum API error during
+  fallback resolution as "unresolved" rather than crashing the hook —
+  the page or action degrades gracefully.
+- **`CreateAccount`** uses strict resolution: if Continuum is unreachable
+  while scanning for an existing user, the hook **refuses to provision**
+  rather than risk creating a duplicate. WHMCS retries the hook once
+  Continuum recovers. Additionally, if `createUser` itself fails with a
+  network/5xx error, the module looks the user up by email post-failure
+  and links to the recovered record — so a "response lost in flight"
+  network blip can never produce two Continuum accounts for one order.
 
 Resolution is **per-server**: every hook runs against the one Continuum
 server WHMCS assigned to that service, and the fallbacks (email/username)
@@ -316,8 +343,12 @@ originating server (see **Service Lifecycle → OFF** above).
 
 On a Continuum-backed WHMCS service, staff can use:
 
-- `Continuum status` tab: Continuum user ID, email, enabled state, role,
-  libraries, stream limit, and an admin deep link.
+- `Continuum status` tab: Continuum user ID, username, email, enabled
+  state, role, libraries (or "All libraries (unrestricted)"), stream /
+  transcode / profile limits, downloads + download-transcode access, max
+  playback quality, last seen, and an admin deep link — full parity with
+  the customer-facing client area so a reconcile can be visually
+  verified without leaving WHMCS.
 - `Reconcile from WHMCS`: pushes the current WHMCS product and configurable
   option state to Continuum (also ensures custom fields exist).
 - `Reset Password`: generates a strong password, updates Continuum, and writes
@@ -362,9 +393,17 @@ diagnosable without extra tooling.
 ## Daily Drift Logging
 
 `hooks.php` registers a `DailyCronJob` hook that scans active services on
-continuum servers and logs basic enabled-state drift to the WHMCS activity log.
-This is logging only; it does not fix drift. Use `Reconcile from WHMCS` on the
-affected service to correct it.
+every continuum-typed server and reports drift to the WHMCS activity log.
+The check covers every attribute the module manages — `enabled`, `role`,
+`library_ids`, `max_streams`, `max_transcodes`, `max_profiles`,
+`download_allowed`, `download_transcode_allowed`, and
+`max_playback_quality` — by rebuilding the expected state from the
+service's product config + configurable options and comparing it against
+Continuum's observed user record.
+
+The cron runs unconditionally on every Continuum-typed server (there is
+no per-server opt-out today). This is logging only; it does not fix
+drift. Use `Reconcile from WHMCS` on the affected service to correct it.
 
 ## Troubleshooting
 
@@ -438,11 +477,12 @@ the real `Identity`/`AttributeMapper`/`CustomFieldStore` code. Coverage
 spans every service-lifecycle and admin handler (Create/Change/
 Terminate/SetEnabled, ChangePassword, AdminResetPassword,
 ClientResetPassword, TestConnection, ClientArea, AdminServicesTab,
-ScaffoldOptions) and the pure logic
+ScaffoldOptions, DailyReconciler) and the pure logic
 (Identity, AttributeMapper, ProductConfig/ServerConfig, PlaybackQuality,
-Username validation/generation, BadWordList, DriftCheck,
+Username validation/generation, BadWordList, DriftCheck, HomeStore,
 ConfigOptionScaffolder) — including the status-aware `enabled` assertion
-in `CreateAccount`/`ChangePackage`.
+in `CreateAccount`/`ChangePackage`, the tier-1 identity verification, and
+the `createUser` idempotency recovery on transient errors.
 
 CI runs the suite on every push and PR (`.github/workflows/tests.yml`,
 PHP 8.2–8.4) plus a `php -l` lint at the 8.1 runtime floor.

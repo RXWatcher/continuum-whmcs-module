@@ -6,24 +6,25 @@ use Continuum\WhmcsModule\Client;
 use Continuum\WhmcsModule\ClientEditSync;
 use Continuum\WhmcsModule\Config\ServerConfig;
 use Continuum\WhmcsModule\DailyReconciler;
+use Continuum\WhmcsModule\HomeStore;
 use WHMCS\Database\Capsule;
 
 require_once __DIR__ . '/autoload.php';
 
 add_hook('DailyCronJob', 1, function ($vars) {
-    // Walk all Continuum-backed servers with reconcile_daily enabled.
+    // Reconcile every Continuum-backed server every day. There is no
+    // per-server opt-out today (no UI for it); add one here if the
+    // operator burden ever becomes real.
     $servers = Capsule::table('tblservers')
         ->where('type', 'continuum')
         ->get();
     foreach ($servers as $server) {
         // Server passwords are encrypted; WHMCS decrypts them via decrypt().
-        // The exact accessor is version-specific (Layer 12 item 6).
         $serverConfig = [
             'serverhostname' => $server->hostname,
             'serverport' => $server->port,
             'serversecure' => $server->secure ? 'on' : '',
             'serverpassword' => decrypt($server->password),
-            'reconcile_daily' => 'yes',  // we already filtered above
         ];
         try {
             (new DailyReconciler((int)$server->id, $serverConfig))->run();
@@ -44,6 +45,12 @@ add_hook('ClientEdit', 1, function ($vars) {
         return;
     }
     $clientId = (int)($vars['userid'] ?? 0);
+
+    // Move the HomeStore pointer to the new email key so multi-server
+    // re-home keeps probing the right server for this customer; pointer
+    // moves are best-effort and never block the API renames below.
+    (new HomeStore())->rename($oldEmail, $newEmail);
+
     $servers = Capsule::table('tblservers')->where('type', 'continuum')->get();
     foreach ($servers as $server) {
         try {

@@ -111,18 +111,18 @@ Citation: [WHMCS hooks reference (client)](https://developers.whmcs.com/hooks-re
 `olddata` sub-array of the previous values. The handler in `hooks.php`
 compares `email` vs `olddata.email` to detect renames.
 
-## 7. Server-level `reconcile_daily` flag location — UNVERIFIED
+## 7. Server-level `reconcile_daily` flag — REMOVED
 
-WHMCS's standard server form fields are limited. Whether extra named
-fields surface in `$params` depends on the version. Confirm during the
-pre-deploy smoke that toggling `reconcile_daily` on the server form
-actually reaches `ServerConfig::fromParams`.
-
-**Risk:** if WHMCS doesn't surface extra named server fields, the flag
-may need to live as a per-product config option or in a separate admin
-setting. (Note: there is no `role` option — every user is provisioned as
-`user`. `configoption10`/`11` are taken by `delete_on_terminate` /
-`auto_rehome_on_reorder`; the next free slot is `configoption12`.)
+Previously the module exposed a per-server `reconcile_daily` opt-in, but
+WHMCS's server form provides no UI for extra named fields and the flag
+was always-on in practice. The plumbing has been removed: `DailyCronJob`
+in `hooks.php` now reconciles **every** Continuum-typed server every
+day, unconditionally. If a per-server opt-out becomes necessary, the
+cleanest re-introduction is a per-product config option (the only place
+WHMCS reliably surfaces extra fields). Slot map remains: there is no
+`role` option (every user is provisioned as `user`); `configoption10` /
+`configoption11` are `delete_on_terminate` / `auto_rehome_on_reorder`;
+the next free slot is `configoption12`.
 
 ## 8. `UpdateClientProduct` service-credential params + `serverport` — FIXED ✓ (verify pre-deploy)
 
@@ -265,7 +265,7 @@ version:
 ## Items still to verify pre-deploy
 
 - §3: the `customfield` dict shape on the target WHMCS version.
-- §7: the `reconcile_daily` server-form field surfacing.
+- §7: (resolved — flag removed; daily cron runs unconditionally.)
 - §8: `serviceusername` / `servicepassword` write-back persists, and a
   non-default server-form port surfaces as `$params['serverport']`.
 - §9: scaffolded configurable options + auto-created custom fields render

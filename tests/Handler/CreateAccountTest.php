@@ -117,6 +117,68 @@ final class CreateAccountTest extends TestCase
         self::assertSame('cooluser', $client->lastCreateUserPayload()['username']);
     }
 
+    public function testTransientCreateErrorRecoversByEmailInsteadOfDuplicating(): void
+    {
+        // createUser appears to fail (network blip / 5xx) but the user
+        // was actually created on Continuum's side — the response just
+        // didn't reach us. Re-trying with a fresh generated username
+        // would orphan the first account. Recovery: look up by email
+        // after the failure and link to the recovered record.
+        //
+        // The anonymous subclass models "user materialises on the
+        // Continuum side as a side effect of the failed call".
+        $client = new class extends FakeClient {
+            public function createUser(array $payload): array
+            {
+                $this->usersByEmail[strtolower($payload['email'])] = [
+                    'id' => 555,
+                    'email' => $payload['email'],
+                    'username' => 'recovered_handle',
+                ];
+                return parent::createUser($payload); // throws from queue
+            }
+        };
+        $client->createUserQueue[] = new ContinuumApiException('network blip', 0);
+
+        $result = (new CreateAccount(Context::make($client)))->handle(Context::params());
+
+        self::assertSame('success', $result);
+        self::assertSame(1, $client->countCalls('createUser'), 'no retry — recovered by email');
+        // findUserByEmail is called twice: once by strict resolve (pre-create,
+        // returns null) and once by recovery (post-create, returns the user).
+        self::assertSame(2, $client->countCalls('findUserByEmail'));
+    }
+
+    public function testHardFailureOnCreateUserSurfacesError(): void
+    {
+        // A 4xx that is NOT a duplicate-username (e.g. 400 invalid input)
+        // is the user's fault — no recovery, propagate cleanly. Confirms
+        // recovery only catches network/5xx, not the whole exception bag.
+        $client = new FakeClient();
+        $client->createUserQueue[] = new ContinuumApiException('bad payload', 400);
+
+        $result = (new CreateAccount(Context::make($client)))->handle(Context::params());
+
+        self::assertStringContainsString('Continuum:', $result);
+        // findUserByEmail is called exactly once — by strict resolve.
+        // Recovery short-circuits on a 4xx without re-querying.
+        self::assertSame(1, $client->countCalls('findUserByEmail'));
+    }
+
+    public function testStrictResolveOutageRefusesToCreateDuplicate(): void
+    {
+        // The whole point of strict-resolve in the create path: if we
+        // can't trust the negative ("no existing user"), we must NOT
+        // create one.
+        $client = new FakeClient();
+        $client->findUserByEmailError = new ContinuumApiException('5xx', 503);
+
+        $result = (new CreateAccount(Context::make($client)))->handle(Context::params());
+
+        self::assertStringContainsString('refusing to create a duplicate', $result);
+        self::assertFalse($client->called('createUser'));
+    }
+
     public function testMissingClientEmailIsRejected(): void
     {
         $client = new FakeClient();

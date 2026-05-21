@@ -8,13 +8,11 @@ final class ServerConfig
 {
     private string $baseUrl;
     private string $apiKey;
-    private bool $reconcileDaily;
 
-    private function __construct(string $baseUrl, string $apiKey, bool $reconcileDaily)
+    private function __construct(string $baseUrl, string $apiKey)
     {
         $this->baseUrl = $baseUrl;
         $this->apiKey = $apiKey;
-        $this->reconcileDaily = $reconcileDaily;
     }
 
     /**
@@ -54,12 +52,7 @@ final class ServerConfig
         }
         $portSuffix = ($port > 0 && $port !== $defaultPort) ? ':' . $port : '';
 
-        $reconcileDaily = ($params['reconcile_daily'] ?? 'no') === 'yes';
-        return new self(
-            $scheme . $host . $portSuffix,
-            $apiKey,
-            $reconcileDaily,
-        );
+        return new self($scheme . $host . $portSuffix, $apiKey);
     }
 
     public function baseUrl(): string
@@ -70,10 +63,5 @@ final class ServerConfig
     public function apiKey(): string
     {
         return $this->apiKey;
-    }
-
-    public function reconcileDaily(): bool
-    {
-        return $this->reconcileDaily;
     }
 }

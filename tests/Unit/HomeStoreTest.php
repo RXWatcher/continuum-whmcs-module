@@ -47,4 +47,47 @@ final class HomeStoreTest extends TestCase
         self::assertSame([], FakeWhmcs::rows('mod_continuum_home'));
         self::assertNull($store->get(''));
     }
+
+    public function testForgetRemovesPointer(): void
+    {
+        $store = new HomeStore();
+        $store->put('jane@example.com', 2, 77);
+        self::assertNotNull($store->get('jane@example.com'));
+
+        $store->forget('JANE@example.com');
+
+        self::assertNull($store->get('jane@example.com'));
+    }
+
+    public function testForgetIsSafeOnAbsentPointer(): void
+    {
+        (new HomeStore())->forget('nobody@example.com');
+        self::assertSame([], FakeWhmcs::rows('mod_continuum_home'));
+    }
+
+    public function testRenameMovesPointerToNewEmail(): void
+    {
+        $store = new HomeStore();
+        $store->put('old@example.com', 2, 77);
+
+        $store->rename('OLD@example.com', 'new@example.com');
+
+        self::assertSame(['serverid' => 2, 'userid' => 77], $store->get('new@example.com'));
+        self::assertNull($store->get('old@example.com'));
+    }
+
+    public function testRenameOnAbsentPointerIsNoop(): void
+    {
+        (new HomeStore())->rename('old@example.com', 'new@example.com');
+        self::assertSame([], FakeWhmcs::rows('mod_continuum_home'));
+    }
+
+    public function testRenameWithSameEmailIsNoop(): void
+    {
+        $store = new HomeStore();
+        $store->put('jane@example.com', 2, 77);
+        $store->rename('jane@example.com', 'JANE@example.com');
+
+        self::assertCount(1, FakeWhmcs::rows('mod_continuum_home'));
+    }
 }

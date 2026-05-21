@@ -130,6 +130,32 @@ final class FakeQueryBuilder
         return $n;
     }
 
+    public function delete(): int
+    {
+        $rows = &FakeWhmcs::$tables[$this->table];
+        if (!is_array($rows)) {
+            return 0;
+        }
+        $kept = [];
+        $deleted = 0;
+        foreach ($rows as $row) {
+            $match = true;
+            foreach ($this->eq as $k => $v) {
+                if (!array_key_exists($k, $row) || (string)$row[$k] !== (string)$v) {
+                    $match = false;
+                    break;
+                }
+            }
+            if ($match) {
+                $deleted++;
+            } else {
+                $kept[] = $row;
+            }
+        }
+        $rows = $kept;
+        return $deleted;
+    }
+
     /**
      * @param array<string, mixed> $attributes
      * @param array<string, mixed> $values

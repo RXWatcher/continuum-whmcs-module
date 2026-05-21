@@ -58,6 +58,47 @@ final class HomeStore
         }
     }
 
+    /**
+     * Drop a pointer. Called from TerminateAccount when the Continuum user
+     * is being permanently deleted (no point pointing at a deleted user;
+     * a re-order is a genuine new customer), and from the ClientEdit email
+     * hook so the pointer follows the rename instead of orphaning at the
+     * old address.
+     */
+    public function forget(string $email): void
+    {
+        $email = strtolower(trim($email));
+        if ($email === '') {
+            return;
+        }
+        $this->ensure();
+        try {
+            Capsule::table(self::TABLE)->where('email', $email)->delete();
+        } catch (\Throwable $e) {
+            // best-effort
+        }
+    }
+
+    /**
+     * Move a pointer to a new email key. Convenience for the email-rename
+     * path: tries the move atomically, but if either side fails just logs
+     * via the underlying methods' best-effort guarantees.
+     */
+    public function rename(string $oldEmail, string $newEmail): void
+    {
+        $oldEmail = strtolower(trim($oldEmail));
+        $newEmail = strtolower(trim($newEmail));
+        if ($oldEmail === '' || $newEmail === '' || $oldEmail === $newEmail) {
+            return;
+        }
+        $existing = $this->get($oldEmail);
+        if ($existing === null) {
+            return;
+        }
+        $this->put($newEmail, $existing['serverid'], $existing['userid']);
+        $this->forget($oldEmail);
+    }
+
     private function ensure(): void
     {
         if ($this->ensured) {

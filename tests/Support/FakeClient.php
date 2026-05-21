@@ -11,7 +11,7 @@ use Continuum\WhmcsModule\ContinuumApiException;
  * Scriptable in-memory Continuum API client. Records every call so tests
  * can assert on payloads (notably the `enabled` flag).
  */
-final class FakeClient implements ClientInterface
+class FakeClient implements ClientInterface
 {
     /** @var array<int, array{method: string, args: array<int, mixed>}> */
     public array $calls = [];

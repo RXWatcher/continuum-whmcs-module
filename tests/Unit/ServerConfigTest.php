@@ -24,7 +24,6 @@ final class ServerConfigTest extends TestCase
         $c = $this->cfg([]);
         self::assertSame('http://host.example', $c->baseUrl());
         self::assertSame('api-key', $c->apiKey());
-        self::assertFalse($c->reconcileDaily());
     }
 
     public function testSecureBaseUrl(): void
@@ -62,12 +61,6 @@ final class ServerConfigTest extends TestCase
             'http://host.example',
             $this->cfg(['serverport' => '80'])->baseUrl()
         );
-    }
-
-    public function testReconcileDailyFlag(): void
-    {
-        self::assertTrue($this->cfg(['reconcile_daily' => 'yes'])->reconcileDaily());
-        self::assertFalse($this->cfg(['reconcile_daily' => 'no'])->reconcileDaily());
     }
 
     public function testMissingHostnameThrows(): void

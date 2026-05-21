@@ -56,6 +56,13 @@ final class TerminateAccount
             // ignore
         }
 
+        // Drop the home pointer too — the user no longer exists anywhere,
+        // so a future re-order is a genuine new account and there's no
+        // home to re-home to. Leaving a stale pointer would make the
+        // re-home path probe a deleted user before scanning, slowing
+        // every re-order for nothing.
+        $this->ctx->homeStore()->forget(Params::email($params));
+
         return 'success';
     }
 }
