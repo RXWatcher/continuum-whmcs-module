@@ -1,6 +1,6 @@
 {
-    "name": "rxwatcher/continuum-whmcs-module",
-    "description": "WHMCS provisioning module for Continuum",
+    "name": "rxwatcher/silo-whmcs-module",
+    "description": "WHMCS provisioning module for Silo",
     "type": "project",
     "license": "proprietary",
     "require": {
@@ -16,7 +16,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Continuum\\WhmcsModule\\Tests\\": "tests/"
+            "Silo\\WhmcsModule\\Tests\\": "tests/"
         }
     },
     "scripts": {

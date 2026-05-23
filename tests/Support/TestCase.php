@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Support;
+namespace Silo\WhmcsModule\Tests\Support;
 
 use PHPUnit\Framework\TestCase as BaseTestCase;
 

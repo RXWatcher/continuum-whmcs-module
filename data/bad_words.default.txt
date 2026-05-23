@@ -1,4 +1,4 @@
-# Continuum username ban list (default).
+# Silo username ban list (default).
 #
 # One disallowed username per line. Lines starting with '#' and blank
 # lines are ignored. Matching is CASE-INSENSITIVE and WHOLE-USERNAME
@@ -9,7 +9,7 @@
 # Usernames are limited to [a-z0-9_-], 3-12 chars, so only entries in
 # that character set/length can ever match.
 #
-# To replace this list, drop a `bad_words.txt` next to continuum.php in
+# To replace this list, drop a `bad_words.txt` next to silo.php in
 # the installed module directory (it fully replaces this default).
 
 # --- General profanity ---

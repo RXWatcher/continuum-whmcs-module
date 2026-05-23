@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Handler;
+namespace Silo\WhmcsModule\Tests\Handler;
 
-use Continuum\WhmcsModule\ContinuumApiException;
-use Continuum\WhmcsModule\Handler\CreateAccount;
-use Continuum\WhmcsModule\Tests\Support\Context;
-use Continuum\WhmcsModule\Tests\Support\FakeClient;
-use Continuum\WhmcsModule\Tests\Support\FakeWhmcs;
-use Continuum\WhmcsModule\Tests\Support\TestCase;
+use Silo\WhmcsModule\SiloApiException;
+use Silo\WhmcsModule\Handler\CreateAccount;
+use Silo\WhmcsModule\Tests\Support\Context;
+use Silo\WhmcsModule\Tests\Support\FakeClient;
+use Silo\WhmcsModule\Tests\Support\FakeWhmcs;
+use Silo\WhmcsModule\Tests\Support\TestCase;
 
 final class CreateAccountTest extends TestCase
 {
-    private function duplicate(): ContinuumApiException
+    private function duplicate(): SiloApiException
     {
-        return new ContinuumApiException('dup', 409, ['error' => 'duplicate_username']);
+        return new SiloApiException('dup', 409, ['error' => 'duplicate_username']);
     }
 
     /**
@@ -28,7 +28,7 @@ final class CreateAccountTest extends TestCase
     {
         $client = new FakeClient();
         $client->usersById[42] = ['id' => 42];
-        $params = Context::params(['customfields' => ['continuum_user_id' => '42']]);
+        $params = Context::params(['customfields' => ['silo_user_id' => '42']]);
 
         $result = (new CreateAccount(Context::make($client)))->handle($params);
 
@@ -120,13 +120,13 @@ final class CreateAccountTest extends TestCase
     public function testTransientCreateErrorRecoversByEmailInsteadOfDuplicating(): void
     {
         // createUser appears to fail (network blip / 5xx) but the user
-        // was actually created on Continuum's side — the response just
+        // was actually created on Silo's side — the response just
         // didn't reach us. Re-trying with a fresh generated username
         // would orphan the first account. Recovery: look up by email
         // after the failure and link to the recovered record.
         //
         // The anonymous subclass models "user materialises on the
-        // Continuum side as a side effect of the failed call".
+        // Silo side as a side effect of the failed call".
         $client = new class extends FakeClient {
             public function createUser(array $payload): array
             {
@@ -138,7 +138,7 @@ final class CreateAccountTest extends TestCase
                 return parent::createUser($payload); // throws from queue
             }
         };
-        $client->createUserQueue[] = new ContinuumApiException('network blip', 0);
+        $client->createUserQueue[] = new SiloApiException('network blip', 0);
 
         $result = (new CreateAccount(Context::make($client)))->handle(Context::params());
 
@@ -155,11 +155,11 @@ final class CreateAccountTest extends TestCase
         // is the user's fault — no recovery, propagate cleanly. Confirms
         // recovery only catches network/5xx, not the whole exception bag.
         $client = new FakeClient();
-        $client->createUserQueue[] = new ContinuumApiException('bad payload', 400);
+        $client->createUserQueue[] = new SiloApiException('bad payload', 400);
 
         $result = (new CreateAccount(Context::make($client)))->handle(Context::params());
 
-        self::assertStringContainsString('Continuum:', $result);
+        self::assertStringContainsString('Silo:', $result);
         // findUserByEmail is called exactly once — by strict resolve.
         // Recovery short-circuits on a 4xx without re-querying.
         self::assertSame(1, $client->countCalls('findUserByEmail'));
@@ -171,7 +171,7 @@ final class CreateAccountTest extends TestCase
         // can't trust the negative ("no existing user"), we must NOT
         // create one.
         $client = new FakeClient();
-        $client->findUserByEmailError = new ContinuumApiException('5xx', 503);
+        $client->findUserByEmailError = new SiloApiException('5xx', 503);
 
         $result = (new CreateAccount(Context::make($client)))->handle(Context::params());
 

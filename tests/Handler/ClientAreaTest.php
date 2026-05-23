@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Handler;
+namespace Silo\WhmcsModule\Tests\Handler;
 
-use Continuum\WhmcsModule\ContinuumApiException;
-use Continuum\WhmcsModule\Handler\ClientArea;
-use Continuum\WhmcsModule\Tests\Support\Context;
-use Continuum\WhmcsModule\Tests\Support\FakeClient;
-use Continuum\WhmcsModule\Tests\Support\TestCase;
+use Silo\WhmcsModule\SiloApiException;
+use Silo\WhmcsModule\Handler\ClientArea;
+use Silo\WhmcsModule\Tests\Support\Context;
+use Silo\WhmcsModule\Tests\Support\FakeClient;
+use Silo\WhmcsModule\Tests\Support\TestCase;
 
 final class ClientAreaTest extends TestCase
 {
     /** @return array<string, mixed> */
-    private function params(array $cf = ['continuum_user_id' => '5']): array
+    private function params(array $cf = ['silo_user_id' => '5']): array
     {
         return Context::params(['customfields' => $cf]);
     }
@@ -44,7 +44,7 @@ final class ClientAreaTest extends TestCase
         self::assertSame(4, $vars['stream_limit']);
         self::assertSame('Up to 4K', $vars['quality']);
         self::assertSame(['All libraries'], $vars['library_names']);
-        self::assertSame('https://continuum.test/', $vars['login_url']);
+        self::assertSame('https://silo.test/', $vars['login_url']);
     }
 
     public function testDisabledUserShowsSuspended(): void
@@ -63,7 +63,7 @@ final class ClientAreaTest extends TestCase
         // getUser call is what fails.
         $client = new FakeClient();
         $client->usersByEmail['jane@example.com'] = ['id' => 5];
-        $client->getUserError = new ContinuumApiException('down', 503);
+        $client->getUserError = new SiloApiException('down', 503);
 
         $vars = (new ClientArea(Context::make($client)))->handle(Context::params())['vars'];
 
@@ -80,8 +80,8 @@ final class ClientAreaTest extends TestCase
         ]);
 
         $vars = (new ClientArea(Context::make($client)))->handle($this->params([
-            'continuum_user_id' => '5',
-            'continuum_library_names_cache' => $cache,
+            'silo_user_id' => '5',
+            'silo_library_names_cache' => $cache,
         ]))['vars'];
 
         self::assertSame(['Movies', 'TV'], $vars['library_names']);
@@ -149,8 +149,8 @@ final class ClientAreaTest extends TestCase
     {
         $client = new FakeClient();
         $client->usersById[5] = ['id' => 5, 'enabled' => true, 'library_ids' => []];
-        $client->listUserProfilesError = new ContinuumApiException('profiles down', 503);
-        $client->listSessionsError = new ContinuumApiException('sessions down', 503);
+        $client->listUserProfilesError = new SiloApiException('profiles down', 503);
+        $client->listSessionsError = new SiloApiException('sessions down', 503);
 
         $vars = (new ClientArea(Context::make($client)))->handle($this->params())['vars'];
 

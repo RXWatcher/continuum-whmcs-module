@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule;
+namespace Silo\WhmcsModule;
 
 /**
  * Whole-word, case-folded match against a list of disallowed usernames.
  *
  * Default ships in data/bad_words.default.txt. Operators replace (not
- * merge) the default by dropping bad_words.txt next to continuum.php;
+ * merge) the default by dropping bad_words.txt next to silo.php;
  * the module loads that if present.
  */
 final class BadWordList

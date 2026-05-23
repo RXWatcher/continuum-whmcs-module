@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-use Continuum\WhmcsModule\Client;
-use Continuum\WhmcsModule\ClientEditSync;
-use Continuum\WhmcsModule\Config\ServerConfig;
-use Continuum\WhmcsModule\DailyReconciler;
-use Continuum\WhmcsModule\HomeStore;
+use Silo\WhmcsModule\Client;
+use Silo\WhmcsModule\ClientEditSync;
+use Silo\WhmcsModule\Config\ServerConfig;
+use Silo\WhmcsModule\DailyReconciler;
+use Silo\WhmcsModule\HomeStore;
 use WHMCS\Database\Capsule;
 
 require_once __DIR__ . '/autoload.php';
 
 add_hook('DailyCronJob', 1, function ($vars) {
-    // Reconcile every Continuum-backed server every day. There is no
+    // Reconcile every Silo-backed server every day. There is no
     // per-server opt-out today (no UI for it); add one here if the
     // operator burden ever becomes real.
     $servers = Capsule::table('tblservers')
-        ->where('type', 'continuum')
+        ->where('type', 'silo')
         ->get();
     foreach ($servers as $server) {
         // Server passwords are encrypted; WHMCS decrypts them via decrypt().
@@ -29,14 +29,14 @@ add_hook('DailyCronJob', 1, function ($vars) {
         try {
             (new DailyReconciler((int)$server->id, $serverConfig))->run();
         } catch (\Throwable $e) {
-            logActivity('continuum daily reconcile failed for server ' . $server->id . ': ' . $e->getMessage());
+            logActivity('silo daily reconcile failed for server ' . $server->id . ': ' . $e->getMessage());
         }
     }
 });
 
-// On client email rename: proactively rename the email on every Continuum
+// On client email rename: proactively rename the email on every Silo
 // server this WHMCS install talks to. Dual-linkage in Identity::resolve
-// would heal lazily on the next module hook, but this keeps Continuum's
+// would heal lazily on the next module hook, but this keeps Silo's
 // view of the customer in sync immediately.
 add_hook('ClientEdit', 1, function ($vars) {
     $newEmail = strtolower(trim((string)($vars['email'] ?? '')));
@@ -51,7 +51,7 @@ add_hook('ClientEdit', 1, function ($vars) {
     // moves are best-effort and never block the API renames below.
     (new HomeStore())->rename($oldEmail, $newEmail);
 
-    $servers = Capsule::table('tblservers')->where('type', 'continuum')->get();
+    $servers = Capsule::table('tblservers')->where('type', 'silo')->get();
     foreach ($servers as $server) {
         try {
             $cfg = ServerConfig::fromParams([
@@ -63,13 +63,13 @@ add_hook('ClientEdit', 1, function ($vars) {
             $result = (new ClientEditSync(new Client($cfg)))->rename($oldEmail, $newEmail);
             if ($result === ClientEditSync::RESULT_UPDATED) {
                 logActivity(
-                    "continuum: pushed email rename on server {$server->id} "
+                    "silo: pushed email rename on server {$server->id} "
                     . "for client {$clientId}: {$oldEmail} → {$newEmail}"
                 );
             }
         } catch (\Throwable $e) {
             logActivity(
-                "continuum: ClientEdit email-sync failed on server {$server->id} "
+                "silo: ClientEdit email-sync failed on server {$server->id} "
                 . "for client {$clientId}: " . $e->getMessage()
             );
         }

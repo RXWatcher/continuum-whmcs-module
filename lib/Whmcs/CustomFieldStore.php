@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Whmcs;
+namespace Silo\WhmcsModule\Whmcs;
 
 /**
  * Reads + writes WHMCS service custom fields.

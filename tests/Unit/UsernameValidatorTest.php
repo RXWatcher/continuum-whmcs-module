@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Unit;
+namespace Silo\WhmcsModule\Tests\Unit;
 
-use Continuum\WhmcsModule\BadWordList;
-use Continuum\WhmcsModule\UsernameValidator;
-use Continuum\WhmcsModule\Tests\Support\TestCase;
+use Silo\WhmcsModule\BadWordList;
+use Silo\WhmcsModule\UsernameValidator;
+use Silo\WhmcsModule\Tests\Support\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 final class UsernameValidatorTest extends TestCase
@@ -16,7 +16,7 @@ final class UsernameValidatorTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->file = sys_get_temp_dir() . '/continuum_uv_' . uniqid('', true) . '.txt';
+        $this->file = sys_get_temp_dir() . '/silo_uv_' . uniqid('', true) . '.txt';
         file_put_contents($this->file, "naughty\n");
     }
 
@@ -63,7 +63,7 @@ final class UsernameValidatorTest extends TestCase
     public function testReservedBuiltin(): void
     {
         self::assertSame('That username is reserved.', $this->validator()->validate('admin'));
-        self::assertSame('That username is reserved.', $this->validator()->validate('continuum'));
+        self::assertSame('That username is reserved.', $this->validator()->validate('silo'));
     }
 
     public function testReservedExtra(): void

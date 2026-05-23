@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Handler;
+namespace Silo\WhmcsModule\Handler;
 
-use Continuum\WhmcsModule\ContinuumApiException;
-use Continuum\WhmcsModule\HookContext;
-use Continuum\WhmcsModule\Identity\Params;
-use Continuum\WhmcsModule\Whmcs\CustomFieldProvisioner;
+use Silo\WhmcsModule\SiloApiException;
+use Silo\WhmcsModule\HookContext;
+use Silo\WhmcsModule\Identity\Params;
+use Silo\WhmcsModule\Whmcs\CustomFieldProvisioner;
 
 /**
  * Shared helpers across all Handler/* classes. Each handler is constructed
@@ -33,16 +33,16 @@ trait HandlerHelpers
     protected function ensureLinkage(HookContext $ctx, array $params, int $userId): void
     {
         $cf = $params['customfields'] ?? [];
-        $current = is_array($cf) ? trim((string)($cf['continuum_user_id'] ?? '')) : '';
+        $current = is_array($cf) ? trim((string)($cf['silo_user_id'] ?? '')) : '';
         if ($current === (string)$userId) {
             return;
         }
         try {
-            $ctx->customFields()->write(Params::serviceId($params), 'continuum_user_id', (string)$userId);
+            $ctx->customFields()->write(Params::serviceId($params), 'silo_user_id', (string)$userId);
         } catch (\Throwable $e) {
             if (function_exists('logActivity')) {
                 logActivity(
-                    "continuum: failed to update continuum_user_id={$userId} for service "
+                    "silo: failed to update silo_user_id={$userId} for service "
                     . Params::serviceId($params) . ": " . $e->getMessage()
                 );
             }
@@ -64,18 +64,18 @@ trait HandlerHelpers
             );
         } catch (\Throwable $e) {
             if (function_exists('logActivity')) {
-                logActivity('continuum: custom-field auto-provision failed for service '
+                logActivity('silo: custom-field auto-provision failed for service '
                     . Params::serviceId($params) . ': ' . $e->getMessage());
             }
         }
     }
 
-    protected function humanError(ContinuumApiException $e): string
+    protected function humanError(SiloApiException $e): string
     {
         if ($e->httpStatus() >= 500) {
-            return 'Continuum returned a server error. Check Module Log for details.';
+            return 'Silo returned a server error. Check Module Log for details.';
         }
-        return 'Continuum: ' . $e->getMessage();
+        return 'Silo: ' . $e->getMessage();
     }
 
     /** @return array<int, array{name: string, value: string}> */
@@ -91,7 +91,7 @@ trait HandlerHelpers
         return $out;
     }
 
-    protected function isDuplicateUsernameError(ContinuumApiException $e): bool
+    protected function isDuplicateUsernameError(SiloApiException $e): bool
     {
         if ($e->httpStatus() !== 409) {
             return false;

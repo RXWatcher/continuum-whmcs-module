@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Handler;
+namespace Silo\WhmcsModule\Handler;
 
-use Continuum\WhmcsModule\BadWordList;
-use Continuum\WhmcsModule\Config\ProductConfig;
-use Continuum\WhmcsModule\ContinuumApiException;
-use Continuum\WhmcsModule\HookContext;
-use Continuum\WhmcsModule\Identity\Params;
-use Continuum\WhmcsModule\UsernameGenerator;
-use Continuum\WhmcsModule\UsernameValidator;
+use Silo\WhmcsModule\BadWordList;
+use Silo\WhmcsModule\Config\ProductConfig;
+use Silo\WhmcsModule\SiloApiException;
+use Silo\WhmcsModule\HookContext;
+use Silo\WhmcsModule\Identity\Params;
+use Silo\WhmcsModule\UsernameGenerator;
+use Silo\WhmcsModule\UsernameValidator;
 use WHMCS\Database\Capsule;
 
 final class CreateAccount
@@ -44,29 +44,29 @@ final class CreateAccount
         $svcOptions = $this->normaliseConfigurableOptions($params['configoptions'] ?? []);
         $attrs = $this->ctx->mapper()->apply($pc, $svcOptions);
 
-        // Strict resolve: a transient Continuum outage during the scan
+        // Strict resolve: a transient Silo outage during the scan
         // could otherwise look like "no existing user", and we'd then
         // create a duplicate the customer never asked for. Better to
         // fail this hook cleanly and let WHMCS retry it.
         try {
             $existingId = $this->ctx->identity()->resolve($params, strict: true);
-        } catch (ContinuumApiException $e) {
+        } catch (SiloApiException $e) {
             return $this->humanError($e)
-                . ' (refusing to create a duplicate user; retry once Continuum is reachable)';
+                . ' (refusing to create a duplicate user; retry once Silo is reachable)';
         }
         if ($existingId !== null) {
             try {
                 // A CreateAccount always means "this account should exist and
                 // be usable". If a prior terminate with delete_on_terminate
                 // OFF left the user disabled, the re-order must re-enable it:
-                // Continuum's updateUser is a partial PATCH (auth/repository.go
+                // Silo's updateUser is a partial PATCH (auth/repository.go
                 // Update only touches `enabled` when it's present), so an
                 // omitted `enabled` leaves the stale disabled state intact.
                 $this->ctx->client()->updateUser(
                     $existingId,
                     array_merge($attrs, ['enabled' => true], $this->syncFields($params))
                 );
-            } catch (ContinuumApiException $e) {
+            } catch (SiloApiException $e) {
                 return $this->humanError($e);
             }
             $this->ensureLinkage($this->ctx, $params, $existingId);
@@ -80,7 +80,7 @@ final class CreateAccount
         }
 
         // Multi-server: before creating a fresh user, see if this customer
-        // already has a Continuum user on another configured server (a
+        // already has a Silo user on another configured server (a
         // retain-on-terminate from a prior order). If so, move this service
         // there and re-link rather than orphaning their history.
         if (ProductConfig::autoRehome($params)) {
@@ -115,7 +115,7 @@ final class CreateAccount
             $username = $resolved['ok'];
             try {
                 $user = $this->ctx->client()->createUser($build($username));
-            } catch (ContinuumApiException $e) {
+            } catch (SiloApiException $e) {
                 if ($this->isDuplicateUsernameError($e)) {
                     return "Username '{$username}' is already taken. Choose another.";
                 }
@@ -131,7 +131,7 @@ final class CreateAccount
                 try {
                     $user = $this->ctx->client()->createUser($build($username));
                     break;
-                } catch (ContinuumApiException $e) {
+                } catch (SiloApiException $e) {
                     if ($this->isDuplicateUsernameError($e)) {
                         continue;
                     }
@@ -154,7 +154,7 @@ final class CreateAccount
 
         $userId = (int)($user['id'] ?? 0);
         if ($userId === 0) {
-            return 'Continuum did not return a user ID; cannot persist linkage';
+            return 'Silo did not return a user ID; cannot persist linkage';
         }
 
         $this->ensureLinkage($this->ctx, $params, $userId);
@@ -164,7 +164,7 @@ final class CreateAccount
     }
 
     /**
-     * Re-home: if the customer already has a Continuum user on another
+     * Re-home: if the customer already has a Silo user on another
      * configured server, move this WHMCS service to that server and
      * re-link the existing user (re-enabled + attributes re-applied).
      *
@@ -173,7 +173,7 @@ final class CreateAccount
      * descriptive error when a home exists but the move failed (never
      * silently falls back to a fresh account, which would lose history).
      *
-     * @param array<string, mixed> $attrs mapped Continuum attributes
+     * @param array<string, mixed> $attrs mapped Silo attributes
      */
     private function tryRehome(array $params, string $email, array $attrs): ?string
     {
@@ -200,7 +200,7 @@ final class CreateAccount
                 ['enabled' => true],
                 $this->syncFields($params)
             ));
-        } catch (ContinuumApiException $e) {
+        } catch (SiloApiException $e) {
             return $this->humanError($e);
         }
 
@@ -211,8 +211,8 @@ final class CreateAccount
         $this->rememberHome($params, $home['serverId'], $home['userId']);
         if (function_exists('logActivity')) {
             logActivity(
-                'continuum: re-homed service ' . Params::serviceId($params)
-                . ' to server ' . $home['serverId'] . ' (Continuum user '
+                'silo: re-homed service ' . Params::serviceId($params)
+                . ' to server ' . $home['serverId'] . ' (Silo user '
                 . $home['userId'] . ') to preserve existing account/history'
             );
         }
@@ -248,7 +248,7 @@ final class CreateAccount
             // log rather than chasing a phantom DB edit.
             if (function_exists('logActivity')) {
                 logActivity(
-                    'continuum: UpdateClientProduct did not re-point service '
+                    'silo: UpdateClientProduct did not re-point service '
                     . $serviceId . '; forcing tblhosting.server -> ' . $targetServerId
                 );
             }
@@ -315,7 +315,7 @@ final class CreateAccount
             return [];
         }
         $missing = [];
-        foreach (['continuum_user_id', 'continuum_library_names_cache'] as $required) {
+        foreach (['silo_user_id', 'silo_library_names_cache'] as $required) {
             if (!in_array($required, $present, true)) {
                 $missing[] = $required;
             }
@@ -353,7 +353,7 @@ final class CreateAccount
         } catch (\Throwable $e) {
             if (function_exists('logActivity')) {
                 logActivity(
-                    "continuum: failed to write back username to WHMCS service "
+                    "silo: failed to write back username to WHMCS service "
                     . Params::serviceId($params) . ": " . $e->getMessage()
                 );
             }
@@ -362,7 +362,7 @@ final class CreateAccount
 
     /**
      * Idempotency net for createUser. A network blip or 5xx after the
-     * user was actually created on Continuum's side would otherwise let
+     * user was actually created on Silo's side would otherwise let
      * us re-create (different username, duplicate account, orphan
      * history). On a transient failure (status 0 = network, or 5xx),
      * look the user up by email — if it now exists, treat the original
@@ -373,7 +373,7 @@ final class CreateAccount
      *
      * @return array<string, mixed>|null
      */
-    private function recoverFromCreateError(ContinuumApiException $e, string $email): ?array
+    private function recoverFromCreateError(SiloApiException $e, string $email): ?array
     {
         if ($e->httpStatus() !== 0 && $e->httpStatus() < 500) {
             return null;
@@ -391,7 +391,7 @@ final class CreateAccount
         }
         if (function_exists('logActivity')) {
             logActivity(
-                'continuum: recovered duplicate-create on transient error for '
+                'silo: recovered duplicate-create on transient error for '
                 . $email . ' -> user ' . (int)$recovered['id']
             );
         }

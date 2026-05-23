@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Support;
+namespace Silo\WhmcsModule\Tests\Support;
 
-use Continuum\WhmcsModule\AttributeMapper;
-use Continuum\WhmcsModule\Config\ServerConfig;
-use Continuum\WhmcsModule\Continuum\ClientInterface;
-use Continuum\WhmcsModule\HomeStore;
-use Continuum\WhmcsModule\HookContext;
-use Continuum\WhmcsModule\Identity;
-use Continuum\WhmcsModule\ServerRegistry;
-use Continuum\WhmcsModule\Whmcs\CustomFieldStore;
+use Silo\WhmcsModule\AttributeMapper;
+use Silo\WhmcsModule\Config\ServerConfig;
+use Silo\WhmcsModule\Silo\ClientInterface;
+use Silo\WhmcsModule\HomeStore;
+use Silo\WhmcsModule\HookContext;
+use Silo\WhmcsModule\Identity;
+use Silo\WhmcsModule\ServerRegistry;
+use Silo\WhmcsModule\Whmcs\CustomFieldStore;
 
 /**
  * Builds a HookContext wired to the FakeClient but with the *real*
@@ -41,7 +41,7 @@ final class Context
      * A ServerRegistry whose per-server client is resolved from a map
      * keyed by the server's API key (tblservers.password, decrypted by
      * the identity shim). Lets re-home tests bind a distinct FakeClient
-     * per Continuum server.
+     * per Silo server.
      *
      * @param array<string, ClientInterface> $clientsByApiKey
      */

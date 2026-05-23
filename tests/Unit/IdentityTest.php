@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Unit;
+namespace Silo\WhmcsModule\Tests\Unit;
 
-use Continuum\WhmcsModule\ContinuumApiException;
-use Continuum\WhmcsModule\Identity;
-use Continuum\WhmcsModule\Identity\Params;
-use Continuum\WhmcsModule\Tests\Support\Context;
-use Continuum\WhmcsModule\Tests\Support\FakeClient;
-use Continuum\WhmcsModule\Tests\Support\TestCase;
+use Silo\WhmcsModule\SiloApiException;
+use Silo\WhmcsModule\Identity;
+use Silo\WhmcsModule\Identity\Params;
+use Silo\WhmcsModule\Tests\Support\Context;
+use Silo\WhmcsModule\Tests\Support\FakeClient;
+use Silo\WhmcsModule\Tests\Support\TestCase;
 
 final class IdentityTest extends TestCase
 {
@@ -19,7 +19,7 @@ final class IdentityTest extends TestCase
         $client->usersById[5] = ['id' => 5];
 
         $id = (new Identity($client))->resolve(
-            Context::params(['customfields' => ['continuum_user_id' => '5']])
+            Context::params(['customfields' => ['silo_user_id' => '5']])
         );
 
         self::assertSame(5, $id);
@@ -33,7 +33,7 @@ final class IdentityTest extends TestCase
         $client->usersByEmail['jane@example.com'] = ['id' => 9];
 
         $id = (new Identity($client))->resolve(
-            Context::params(['customfields' => ['continuum_user_id' => '5']])
+            Context::params(['customfields' => ['silo_user_id' => '5']])
         );
 
         self::assertSame(9, $id);
@@ -42,11 +42,11 @@ final class IdentityTest extends TestCase
     public function testTier1ApiErrorFallsThroughInsteadOfThrowing(): void
     {
         $client = new FakeClient();
-        $client->getUserError = new ContinuumApiException('stale', 404);
+        $client->getUserError = new SiloApiException('stale', 404);
         $client->usersByEmail['jane@example.com'] = ['id' => 12];
 
         $id = (new Identity($client))->resolve(
-            Context::params(['customfields' => ['continuum_user_id' => '5']])
+            Context::params(['customfields' => ['silo_user_id' => '5']])
         );
 
         self::assertSame(12, $id);
@@ -87,7 +87,7 @@ final class IdentityTest extends TestCase
     public function testUnreachableApiIsTreatedAsUnresolvedNotFatal(): void
     {
         $client = new FakeClient();
-        $client->findUserByEmailError = new ContinuumApiException('5xx', 503);
+        $client->findUserByEmailError = new SiloApiException('5xx', 503);
 
         $id = (new Identity($client))->resolve(Context::params());
 
@@ -96,7 +96,7 @@ final class IdentityTest extends TestCase
 
     public function testTier1RejectsUserWhoseEmailDoesNotMatchWhmcsClient(): void
     {
-        // Stale / hand-edited continuum_user_id points at a DIFFERENT
+        // Stale / hand-edited silo_user_id points at a DIFFERENT
         // customer. Without verification, every subsequent write (email
         // rename, password reset, …) would hit the wrong account. The
         // resolve must fall through to tier 2 (email lookup) instead.
@@ -105,7 +105,7 @@ final class IdentityTest extends TestCase
         $client->usersByEmail['jane@example.com'] = ['id' => 9, 'email' => 'jane@example.com'];
 
         $id = (new Identity($client))->resolve(Context::params([
-            'customfields' => ['continuum_user_id' => '42'],
+            'customfields' => ['silo_user_id' => '42'],
         ]));
 
         self::assertSame(9, $id, 'must heal via tier-2 email lookup');
@@ -117,7 +117,7 @@ final class IdentityTest extends TestCase
         $client->usersById[42] = ['id' => 42, 'email' => 'JANE@example.com'];
 
         $id = (new Identity($client))->resolve(Context::params([
-            'customfields' => ['continuum_user_id' => '42'],
+            'customfields' => ['silo_user_id' => '42'],
             'clientsdetails' => ['email' => 'jane@example.com'],
         ]));
 
@@ -127,14 +127,14 @@ final class IdentityTest extends TestCase
 
     public function testTier1AcceptsUserWhoseRecordHasNoEmailField(): void
     {
-        // Legacy / partial Continuum responses may omit the email key.
+        // Legacy / partial Silo responses may omit the email key.
         // Treat as unverifiable rather than wrong, so the module keeps
-        // working against older Continuum builds.
+        // working against older Silo builds.
         $client = new FakeClient();
         $client->usersById[42] = ['id' => 42];
 
         $id = (new Identity($client))->resolve(Context::params([
-            'customfields' => ['continuum_user_id' => '42'],
+            'customfields' => ['silo_user_id' => '42'],
         ]));
 
         self::assertSame(42, $id);
@@ -143,9 +143,9 @@ final class IdentityTest extends TestCase
     public function testStrictResolveReThrowsOnTier2ApiOutage(): void
     {
         $client = new FakeClient();
-        $client->findUserByEmailError = new ContinuumApiException('5xx', 503);
+        $client->findUserByEmailError = new SiloApiException('5xx', 503);
 
-        $this->expectException(ContinuumApiException::class);
+        $this->expectException(SiloApiException::class);
         (new Identity($client))->resolve(Context::params(), strict: true);
     }
 
@@ -154,11 +154,11 @@ final class IdentityTest extends TestCase
         // 404 on getUser is the expected "stale ID" path — strict mode
         // must still let tier 2/3 heal a stale custom field.
         $client = new FakeClient();
-        $client->getUserError = new ContinuumApiException('not found', 404);
+        $client->getUserError = new SiloApiException('not found', 404);
         $client->usersByEmail['jane@example.com'] = ['id' => 12, 'email' => 'jane@example.com'];
 
         $id = (new Identity($client))->resolve(
-            Context::params(['customfields' => ['continuum_user_id' => '5']]),
+            Context::params(['customfields' => ['silo_user_id' => '5']]),
             strict: true
         );
 
@@ -168,11 +168,11 @@ final class IdentityTest extends TestCase
     public function testStrictResolveReThrowsOnTier1ServerError(): void
     {
         $client = new FakeClient();
-        $client->getUserError = new ContinuumApiException('server error', 502);
+        $client->getUserError = new SiloApiException('server error', 502);
 
-        $this->expectException(ContinuumApiException::class);
+        $this->expectException(SiloApiException::class);
         (new Identity($client))->resolve(
-            Context::params(['customfields' => ['continuum_user_id' => '5']]),
+            Context::params(['customfields' => ['silo_user_id' => '5']]),
             strict: true
         );
     }
@@ -180,16 +180,16 @@ final class IdentityTest extends TestCase
     public function testStaticExtractors(): void
     {
         $params = Context::params([
-            'customfields' => ['continuum_user_id' => ' 42 '],
+            'customfields' => ['silo_user_id' => ' 42 '],
             'clientsdetails' => ['email' => '  Jane@Ex.com '],
             'username' => '  svc  ',
         ]);
 
-        self::assertSame(42, Params::continuumUserId($params));
+        self::assertSame(42, Params::siloUserId($params));
         self::assertSame('jane@ex.com', Params::email($params));
         self::assertSame('svc', Params::username($params));
-        self::assertNull(Params::continuumUserId(
-            Context::params(['customfields' => ['continuum_user_id' => 'NaN']])
+        self::assertNull(Params::siloUserId(
+            Context::params(['customfields' => ['silo_user_id' => 'NaN']])
         ));
     }
 }

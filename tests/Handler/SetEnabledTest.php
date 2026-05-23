@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Handler;
+namespace Silo\WhmcsModule\Tests\Handler;
 
-use Continuum\WhmcsModule\Handler\SetEnabled;
-use Continuum\WhmcsModule\Tests\Support\Context;
-use Continuum\WhmcsModule\Tests\Support\FakeClient;
-use Continuum\WhmcsModule\Tests\Support\TestCase;
+use Silo\WhmcsModule\Handler\SetEnabled;
+use Silo\WhmcsModule\Tests\Support\Context;
+use Silo\WhmcsModule\Tests\Support\FakeClient;
+use Silo\WhmcsModule\Tests\Support\TestCase;
 
 /**
  * SetEnabled backs Suspend (false) and Unsuspend (true). It must always
- * send an explicit `enabled` flag, since Continuum's updateUser is a
+ * send an explicit `enabled` flag, since Silo's updateUser is a
  * partial PATCH.
  */
 final class SetEnabledTest extends TestCase
@@ -26,7 +26,7 @@ final class SetEnabledTest extends TestCase
     /** @return array<string, mixed> */
     private function params(): array
     {
-        return Context::params(['customfields' => ['continuum_user_id' => '70']]);
+        return Context::params(['customfields' => ['silo_user_id' => '70']]);
     }
 
     public function testUnsuspendSendsEnabledTrue(): void
@@ -55,7 +55,7 @@ final class SetEnabledTest extends TestCase
 
         $result = (new SetEnabled(Context::make($client)))->handle(Context::params(), true);
 
-        self::assertStringContainsString('No Continuum user is linked', $result);
+        self::assertStringContainsString('No Silo user is linked', $result);
         self::assertFalse($client->called('updateUser'));
     }
 }

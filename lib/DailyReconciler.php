@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule;
+namespace Silo\WhmcsModule;
 
-use Continuum\WhmcsModule\Config\ProductConfig;
-use Continuum\WhmcsModule\Config\ServerConfig;
-use Continuum\WhmcsModule\Continuum\ClientInterface;
+use Silo\WhmcsModule\Config\ProductConfig;
+use Silo\WhmcsModule\Config\ServerConfig;
+use Silo\WhmcsModule\Silo\ClientInterface;
 use WHMCS\Database\Capsule;
 
 /**
- * Daily drift check: for every active service on this Continuum server,
+ * Daily drift check: for every active service on this Silo server,
  * read the WHMCS-side expected state (product config + configurable
- * options + service status) and compare to Continuum's observed user
+ * options + service status) and compare to Silo's observed user
  * record. Reports drift to the WHMCS activity log; does NOT auto-fix.
  * An admin clicks "Reconcile from WHMCS" on the drifted service to
  * push the expected state.
@@ -45,7 +45,7 @@ final class DailyReconciler
             $serviceId = (int)$svc->id;
             $userId = $this->linkedUserId($serviceId);
             if ($userId === 0) {
-                logActivity("continuum reconcile: service {$serviceId} has no continuum_user_id; skipping");
+                logActivity("silo reconcile: service {$serviceId} has no silo_user_id; skipping");
                 continue;
             }
 
@@ -54,7 +54,7 @@ final class DailyReconciler
                 $pc = ProductConfig::fromParams($pcParams);
             } catch (\InvalidArgumentException $e) {
                 logActivity(
-                    "continuum reconcile: service {$serviceId} product "
+                    "silo reconcile: service {$serviceId} product "
                     . (int)($svc->packageid ?? 0) . " has invalid config: " . $e->getMessage()
                 );
                 continue;
@@ -68,19 +68,19 @@ final class DailyReconciler
 
             try {
                 $user = $client->getUser($userId);
-            } catch (ContinuumApiException $e) {
-                logActivity("continuum reconcile: service {$serviceId} -> user {$userId}: " . $e->getMessage());
+            } catch (SiloApiException $e) {
+                logActivity("silo reconcile: service {$serviceId} -> user {$userId}: " . $e->getMessage());
                 continue;
             }
 
             foreach (DriftCheck::compare($serviceId, $userId, $expected, $user) as $msg) {
-                logActivity("continuum reconcile drift: {$msg}");
+                logActivity("silo reconcile drift: {$msg}");
             }
         }
     }
 
     /**
-     * Resolve the Continuum user ID for a WHMCS service via its custom
+     * Resolve the Silo user ID for a WHMCS service via its custom
      * fields. Two simple equality queries (the join lives in the real
      * Capsule but the test shim doesn't model joins; reads are cheap).
      */
@@ -89,7 +89,7 @@ final class DailyReconciler
         try {
             $fieldId = Capsule::table('tblcustomfields')
                 ->where('type', 'product')
-                ->where('fieldname', 'continuum_user_id')
+                ->where('fieldname', 'silo_user_id')
                 ->value('id');
             if ($fieldId === null) {
                 return 0;

@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Handler;
+namespace Silo\WhmcsModule\Tests\Handler;
 
-use Continuum\WhmcsModule\ContinuumApiException;
-use Continuum\WhmcsModule\Handler\ScaffoldOptions;
-use Continuum\WhmcsModule\Tests\Support\Context;
-use Continuum\WhmcsModule\Tests\Support\FakeClient;
-use Continuum\WhmcsModule\Tests\Support\FakeWhmcs;
-use Continuum\WhmcsModule\Tests\Support\TestCase;
+use Silo\WhmcsModule\SiloApiException;
+use Silo\WhmcsModule\Handler\ScaffoldOptions;
+use Silo\WhmcsModule\Tests\Support\Context;
+use Silo\WhmcsModule\Tests\Support\FakeClient;
+use Silo\WhmcsModule\Tests\Support\FakeWhmcs;
+use Silo\WhmcsModule\Tests\Support\TestCase;
 
 final class ScaffoldOptionsTest extends TestCase
 {
     private function seedSchema(): void
     {
         FakeWhmcs::seedTable('tblcurrencies', [['id' => 1]]);
-        FakeWhmcs::seedTable('tblproducts', [['id' => 10, 'servertype' => 'continuum']]);
+        FakeWhmcs::seedTable('tblproducts', [['id' => 10, 'servertype' => 'silo']]);
     }
 
     public function testScaffoldsSuccessfullyWithLiveLibraries(): void
@@ -38,7 +38,7 @@ final class ScaffoldOptionsTest extends TestCase
     {
         $this->seedSchema();
         $client = new FakeClient();
-        $client->listLibrariesError = new ContinuumApiException('libs down', 503);
+        $client->listLibrariesError = new SiloApiException('libs down', 503);
 
         $result = (new ScaffoldOptions(Context::make($client)))->handle();
 

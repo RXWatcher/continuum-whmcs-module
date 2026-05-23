@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Handler;
+namespace Silo\WhmcsModule\Tests\Handler;
 
-use Continuum\WhmcsModule\ContinuumApiException;
-use Continuum\WhmcsModule\Handler\ChangePackage;
-use Continuum\WhmcsModule\Tests\Support\Context;
-use Continuum\WhmcsModule\Tests\Support\FakeClient;
-use Continuum\WhmcsModule\Tests\Support\FakeWhmcs;
-use Continuum\WhmcsModule\Tests\Support\TestCase;
+use Silo\WhmcsModule\SiloApiException;
+use Silo\WhmcsModule\Handler\ChangePackage;
+use Silo\WhmcsModule\Tests\Support\Context;
+use Silo\WhmcsModule\Tests\Support\FakeClient;
+use Silo\WhmcsModule\Tests\Support\FakeWhmcs;
+use Silo\WhmcsModule\Tests\Support\TestCase;
 
 /**
  * ChangePackage also backs the "Reconcile from WHMCS" button. These lock
@@ -28,7 +28,7 @@ final class ChangePackageTest extends TestCase
     /** @return array<string, mixed> */
     private function params(int $userId = 50): array
     {
-        return Context::params(['customfields' => ['continuum_user_id' => (string)$userId]]);
+        return Context::params(['customfields' => ['silo_user_id' => (string)$userId]]);
     }
 
     public function testActiveServiceEnablesUser(): void
@@ -82,7 +82,7 @@ final class ChangePackageTest extends TestCase
 
         $result = (new ChangePackage(Context::make($client)))->handle(Context::params());
 
-        self::assertSame('No Continuum user is linked to this service.', $result);
+        self::assertSame('No Silo user is linked to this service.', $result);
         self::assertFalse($client->called('updateUser'));
     }
 
@@ -90,10 +90,10 @@ final class ChangePackageTest extends TestCase
     {
         FakeWhmcs::seedTable('tblhosting', [['id' => 7, 'domainstatus' => 'Active']]);
         $client = $this->resolvedClient();
-        $client->updateUserError = new ContinuumApiException('boom', 500);
+        $client->updateUserError = new SiloApiException('boom', 500);
 
         $result = (new ChangePackage(Context::make($client)))->handle($this->params());
 
-        self::assertSame('Continuum returned a server error. Check Module Log for details.', $result);
+        self::assertSame('Silo returned a server error. Check Module Log for details.', $result);
     }
 }

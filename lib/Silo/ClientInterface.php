@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Continuum;
+namespace Silo\WhmcsModule\Silo;
 
 /**
- * Boundary between this module and Continuum's admin HTTP API.
+ * Boundary between this module and Silo's admin HTTP API.
  */
 interface ClientInterface
 {

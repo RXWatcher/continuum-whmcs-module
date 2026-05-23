@@ -22,8 +22,8 @@ Citation: [WHMCS Module Parameters](https://developers.whmcs.com/provisioning-mo
   service-status field. A provisioning hook cannot learn whether the
   service is Active/Suspended/Terminated from `$params`.
 
-  **Consequence:** any handler that must assert the Continuum user's
-  `enabled` state (Continuum's `updateUser` is a partial PATCH — see
+  **Consequence:** any handler that must assert the Silo user's
+  `enabled` state (Silo's `updateUser` is a partial PATCH — see
   `auth/repository.go` `Update`, which only writes `enabled` when it is
   present, so an omitted value preserves a stale disabled state) must read
   `tblhosting.domainstatus` directly via `Capsule`, the same source
@@ -66,7 +66,7 @@ assumption confirmed by community use; verify against your WHMCS version.
 **Risk:** if `customfield` is a single dict in single-entry mode (instead
 of always an array), `CustomFieldStore::loadFields` returns the wrong
 shape and resolution fails. Pre-deploy smoke should land at least one
-service through CreateAccount and verify `continuum_user_id` is populated
+service through CreateAccount and verify `silo_user_id` is populated
 correctly.
 
 ## 4. Custom-button handler return type — VERIFIED ✓ + FIXED ✓
@@ -81,7 +81,7 @@ recognised by WHMCS — the button silently does nothing.
 The newer **Custom Actions** feature (WHMCS 8.5+) supports
 `['success' => true, 'redirectTo' => 'url']` but has no `newWindow` flag.
 
-**Fix:** The "Open in Continuum" deep-link no longer goes through a custom
+**Fix:** The "Open in Silo" deep-link no longer goes through a custom
 button. It renders as a regular `<a target="_blank" rel="noopener">`
 inside the `AdminServicesTabFields` output, where arbitrary HTML is
 supported (commit `7c3fdbb`).
@@ -99,7 +99,7 @@ module's existing return shape matches. The enriched template only adds
 `vars` keys (username, plan, profiles, watching-now, member-since); the
 contract shape is unchanged. The client-area self-service button is
 registered via `ClientAreaCustomButtonArray` and its handler
-(`continuum_clientarea_resetpw`) returns a status string — the same
+(`silo_clientarea_resetpw`) returns a status string — the same
 contract as the admin custom buttons in §4 (verify the button renders
 and its returned message displays on the target theme/version).
 
@@ -116,7 +116,7 @@ compares `email` vs `olddata.email` to detect renames.
 Previously the module exposed a per-server `reconcile_daily` opt-in, but
 WHMCS's server form provides no UI for extra named fields and the flag
 was always-on in practice. The plumbing has been removed: `DailyCronJob`
-in `hooks.php` now reconciles **every** Continuum-typed server every
+in `hooks.php` now reconciles **every** Silo-typed server every
 day, unconditionally. If a per-server opt-out becomes necessary, the
 cleanest re-introduction is a per-product config option (the only place
 WHMCS reliably surfaces extra fields). Slot map remains: there is no
@@ -196,7 +196,7 @@ a customer-entered value when an admin has enabled Show on Order Form.
 Citation: [WHMCS UpdateClientProduct](https://developers.whmcs.com/api-reference/updateclientproduct/) + [WHMCS Module Parameters](https://developers.whmcs.com/provisioning-modules/module-parameters/).
 
 Opt-in (`configoption11`, default OFF). When ON, `CreateAccount` may
-move a service to the Continuum server that already hosts the returning
+move a service to the Silo server that already hosts the returning
 customer, then re-link the existing user instead of creating a fresh
 account. Contract assumptions on the target WHMCS version:
 
@@ -212,14 +212,14 @@ account. Contract assumptions on the target WHMCS version:
   hooks (Suspend/ChangePackage/ClientArea) receive the new server's
   connection params in `$params`.
 - **Cross-server scan.** `ServerRegistry` reads `tblservers` filtered to
-  `type='continuum'`, skips rows with `disabled = 1`, and builds a
+  `type='silo'`, skips rows with `disabled = 1`, and builds a
   per-server client from `hostname`/`port`/`secure`/`decrypt(password)`
   — the same shape `hooks.php` (DailyCronJob/ClientEdit) already relies
   on. **Verify:** `tblservers.disabled` truthiness (1 = disabled) and
   that `decrypt()` is callable from the `CreateAccount` path on the
   target version (it is in cron/`ClientEdit`; CreateAccount is a new
   caller).
-- **Pointer table.** `HomeStore` creates `mod_continuum_home` on demand
+- **Pointer table.** `HomeStore` creates `mod_silo_home` on demand
   via `Capsule::schema()` (same direct-schema philosophy as §9). It is a
   pure cache: every method is best-effort and degrades to a full scan,
   so a missing schema builder or insufficient `CREATE` grant only costs
@@ -230,16 +230,16 @@ account. Contract assumptions on the target WHMCS version:
 **Risk / to verify (end-to-end):** with `auto_rehome_on_reorder` ON and
 `delete_on_terminate` OFF — terminate a service on server A, place a
 **new** order that WHMCS routes to server B, and confirm: the service
-ends up on **A**, the existing Continuum user is re-enabled with history
-intact, no fresh account was created on B, the `mod_continuum_home`
+ends up on **A**, the existing Silo user is re-enabled with history
+intact, no fresh account was created on B, the `mod_silo_home`
 pointer row exists, and a follow-up hook (e.g. Suspend) operates on A.
 
 ## 11. Client-area enrichment + self-service — FIXED ✓ (verify pre-deploy)
 
-Citation: Continuum admin API (`/opt/continuum` router) + [WHMCS Client Area Output](https://developers.whmcs.com/provisioning-modules/client-area-output/).
+Citation: Silo admin API (`/opt/silo` router) + [WHMCS Client Area Output](https://developers.whmcs.com/provisioning-modules/client-area-output/).
 
 The client area now reads two extra admin endpoints and exposes a
-self-service action. Assumptions to confirm on the target Continuum
+self-service action. Assumptions to confirm on the target Silo
 version:
 
 - **Endpoints.** `GET /api/v1/admin/users/{id}/profiles` → `[{id,name}]`;
@@ -250,10 +250,10 @@ version:
   that row, never the page). **Verify:** both endpoints exist and return
   those shapes; the page renders with one or both unavailable.
 - **Password reset = sign-out-everywhere.** The self-service button
-  changes the password via admin `updateUser`, which Continuum treats as
+  changes the password via admin `updateUser`, which Silo treats as
   session-revoking (`updateRequiresSessionRevocation` is true when
   `password` is set). **Verify:** after a client-area reset, a
-  previously-authenticated Continuum session is actually rejected — this
+  previously-authenticated Silo session is actually rejected — this
   is the claim shown to the customer.
 - **Cost.** Up to ~3 admin-API calls per client-area view (`getUser` +
   profiles + sessions; library names stay 24h-cached). `/admin/sessions`
@@ -274,7 +274,7 @@ version:
   `library_ids` = `configoption1`).
 - §1: the `enabled`-state assertion. (a) Terminate a service with
   `delete_on_terminate=OFF`, re-order on the **same** server, and confirm
-  the Continuum user comes back **enabled** — not merely relinked. (b) Run
+  the Silo user comes back **enabled** — not merely relinked. (b) Run
   "Reconcile from WHMCS" against a **Suspended** service and confirm the
   user stays **disabled** (the fail-safe default must not resurrect a
   non-payer). (c) Confirm `Capsule` can read `tblhosting.domainstatus`
@@ -283,11 +283,11 @@ version:
   to B → service ends on A, user re-enabled, history intact, pointer row
   written, follow-up hook operates on A); `tblservers.disabled`
   semantics; `decrypt()` callable from `CreateAccount`; `Capsule::schema()`
-  can create `mod_continuum_home` (or the DB user can).
+  can create `mod_silo_home` (or the DB user can).
 - §11: client area renders with the profiles/sessions endpoints present
   AND with each unavailable (independent degradation); `client_ip` never
   appears; the self-service "reset password & sign out" button renders,
-  returns its message on the theme, and a live Continuum session is
+  returns its message on the theme, and a live Silo session is
   actually rejected afterward.
 
 All can be checked by running one CreateAccount, one Reset Password, one

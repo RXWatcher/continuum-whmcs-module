@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Unit;
+namespace Silo\WhmcsModule\Tests\Unit;
 
-use Continuum\WhmcsModule\DriftCheck;
-use Continuum\WhmcsModule\Tests\Support\TestCase;
+use Silo\WhmcsModule\DriftCheck;
+use Silo\WhmcsModule\Tests\Support\TestCase;
 
 final class DriftCheckTest extends TestCase
 {
@@ -68,7 +68,7 @@ final class DriftCheckTest extends TestCase
 
     public function testPlaybackQualityComparedCanonically(): void
     {
-        // Module says '4k', Continuum stores '2160p' — same thing.
+        // Module says '4k', Silo stores '2160p' — same thing.
         self::assertSame(
             [],
             DriftCheck::compare(1, 2, ['max_playback_quality' => '4k'], ['max_playback_quality' => '2160p'])

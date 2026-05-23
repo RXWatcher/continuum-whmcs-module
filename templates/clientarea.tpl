@@ -9,7 +9,7 @@
 
       <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:1rem 1.25rem; background:#111827; color:#fff;">
         <div>
-          <div style="font-size:1.05rem; font-weight:600;">Your Continuum service</div>
+          <div style="font-size:1.05rem; font-weight:600;">Your Silo service</div>
           {if $username}<div style="font-size:0.85rem; opacity:0.75; margin-top:0.15rem;">@{$username|escape:'html'}</div>{/if}
         </div>
         {if $status == 'active'}
@@ -50,7 +50,7 @@
 
       <div style="padding:1rem 1.25rem; border-top:1px solid #e5e7eb;">
         <a href="{$login_url|escape:'html'}" target="_blank" rel="noopener" style="display:inline-block; padding:0.6rem 1.2rem; background:#111827; color:#fff; text-decoration:none; border-radius:6px; font-weight:600;">
-          Sign in to Continuum &rarr;
+          Sign in to Silo &rarr;
         </a>
       </div>
 

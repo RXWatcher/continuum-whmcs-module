@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Handler;
+namespace Silo\WhmcsModule\Tests\Handler;
 
-use Continuum\WhmcsModule\ContinuumApiException;
-use Continuum\WhmcsModule\Handler\ClientResetPassword;
-use Continuum\WhmcsModule\Tests\Support\Context;
-use Continuum\WhmcsModule\Tests\Support\FakeClient;
-use Continuum\WhmcsModule\Tests\Support\FakeWhmcs;
-use Continuum\WhmcsModule\Tests\Support\TestCase;
+use Silo\WhmcsModule\SiloApiException;
+use Silo\WhmcsModule\Handler\ClientResetPassword;
+use Silo\WhmcsModule\Tests\Support\Context;
+use Silo\WhmcsModule\Tests\Support\FakeClient;
+use Silo\WhmcsModule\Tests\Support\FakeWhmcs;
+use Silo\WhmcsModule\Tests\Support\TestCase;
 
 final class ClientResetPasswordTest extends TestCase
 {
@@ -23,7 +23,7 @@ final class ClientResetPasswordTest extends TestCase
     /** @return array<string, mixed> */
     private function params(): array
     {
-        return Context::params(['customfields' => ['continuum_user_id' => '5']]);
+        return Context::params(['customfields' => ['silo_user_id' => '5']]);
     }
 
     public function testUnlinkedAccountReturnsFriendlyMessage(): void
@@ -56,7 +56,7 @@ final class ClientResetPasswordTest extends TestCase
     public function testApiFailureIsReportedWithoutLeakingInternals(): void
     {
         $client = $this->resolved();
-        $client->updateUserError = new ContinuumApiException('boom', 500);
+        $client->updateUserError = new SiloApiException('boom', 500);
 
         $result = (new ClientResetPassword(Context::make($client)))->handle($this->params());
 

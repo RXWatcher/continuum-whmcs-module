@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule;
+namespace Silo\WhmcsModule;
 
-use Continuum\WhmcsModule\Continuum\ClientInterface;
+use Silo\WhmcsModule\Silo\ClientInterface;
 
 /**
- * Pure email-rename driver. Given old/new emails and a Continuum admin
+ * Pure email-rename driver. Given old/new emails and a Silo admin
  * client, look up the user by old email and push the new email.
  *
  * Wired from hooks.php's ClientEdit listener — the listener walks
- * tblservers for continuum-typed servers and instantiates one of these
+ * tblservers for silo-typed servers and instantiates one of these
  * per server. The dual-linkage in Identity::resolve already heals lazily
  * on the next module hook, but this hook makes the rename proactive so
- * Continuum reflects the new email immediately.
+ * Silo reflects the new email immediately.
  */
 final class ClientEditSync
 {

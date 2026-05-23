@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Config;
+namespace Silo\WhmcsModule\Config;
 
 final class ServerConfig
 {

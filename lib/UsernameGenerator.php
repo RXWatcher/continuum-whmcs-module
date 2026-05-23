@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule;
+namespace Silo\WhmcsModule;
 
 /**
  * Generates 7-character lowercase usernames: 4 letters + 3 digits

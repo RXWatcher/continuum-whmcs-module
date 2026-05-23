@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule;
+namespace Silo\WhmcsModule;
 
 /**
- * Canonicalises playback-quality values to the three ceilings Continuum
- * actually enforces (verified in Continuum's access/quality.go
+ * Canonicalises playback-quality values to the three ceilings Silo
+ * actually enforces (verified in Silo's access/quality.go
  * ParsePlaybackQualityPreset):
  *
  *   ''      unrestricted
- *   '1080p' standard — Continuum collapses 480p/720p/1080p to this
- *   '4k'    Continuum stores/normalises this as 2160p
+ *   '1080p' standard — Silo collapses 480p/720p/1080p to this
+ *   '4k'    Silo stores/normalises this as 2160p
  *
- * Outbound, Continuum accepts '', '1080p' and '4k' directly. Inbound it
+ * Outbound, Silo accepts '', '1080p' and '4k' directly. Inbound it
  * returns '', '1080p' or '2160p'. Centralising the mapping here keeps the
  * config field, attribute mapper, client-area display and drift check in
  * agreement, and lets legacy 480p/720p product settings degrade to 1080p
- * (Continuum's real behaviour) instead of failing provisioning.
+ * (Silo's real behaviour) instead of failing provisioning.
  */
 final class PlaybackQuality
 {

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule;
+namespace Silo\WhmcsModule;
 
-use Continuum\WhmcsModule\Config\ServerConfig;
-use Continuum\WhmcsModule\Continuum\ClientInterface;
+use Silo\WhmcsModule\Config\ServerConfig;
+use Silo\WhmcsModule\Silo\ClientInterface;
 
 final class Client implements ClientInterface
 {
@@ -84,7 +84,7 @@ final class Client implements ClientInterface
             $res = $this->rawRequest('GET', $path, null);
             $decoded = $res['body'] === '' ? null : json_decode($res['body'], true);
             if ($res['status'] < 100) {
-                throw new ContinuumApiException('Network error calling Continuum: no HTTP status returned');
+                throw new SiloApiException('Network error calling Silo: no HTTP status returned');
             }
             if ($res['status'] >= 400) {
                 $this->throwApiError($res['status'], $decoded);
@@ -99,7 +99,7 @@ final class Client implements ClientInterface
         if (count($all) > 5000 && !$this->warnedAboveThreshold) {
             $this->warnedAboveThreshold = true;
             if (function_exists('logActivity')) {
-                logActivity('continuum: user list >5000 — consider adding email-filter endpoint on Continuum side');
+                logActivity('silo: user list >5000 — consider adding email-filter endpoint on Silo side');
             }
         }
 
@@ -119,7 +119,7 @@ final class Client implements ClientInterface
 
     /**
      * Note: libraries live at /api/v1/libraries, NOT under /api/v1/admin
-     * (verified against a live Continuum instance — the /admin path 404s).
+     * (verified against a live Silo instance — the /admin path 404s).
      *
      * @return array<int, array<string, mixed>>
      */
@@ -159,14 +159,14 @@ final class Client implements ClientInterface
     {
         $body = $payload === null ? null : json_encode($payload, JSON_UNESCAPED_SLASHES);
         if ($body === false) {
-            throw new \RuntimeException('Failed to encode Continuum API request as JSON');
+            throw new \RuntimeException('Failed to encode Silo API request as JSON');
         }
 
         $res = $this->rawRequest($method, $path, $body);
         $decoded = $res['body'] === '' ? null : json_decode($res['body'], true);
 
         if ($res['status'] < 100) {
-            throw new ContinuumApiException('Network error calling Continuum: no HTTP status returned');
+            throw new SiloApiException('Network error calling Silo: no HTTP status returned');
         }
         if ($res['status'] >= 400) {
             $this->throwApiError($res['status'], $decoded);
@@ -221,7 +221,7 @@ final class Client implements ClientInterface
         }
 
         try {
-            logModuleCall('continuum', $method . ' ' . $path, $request, $response, '', $mask);
+            logModuleCall('silo', $method . ' ' . $path, $request, $response, '', $mask);
         } catch (\Throwable $e) {
             // Logging must never break the request path.
         }
@@ -234,7 +234,7 @@ final class Client implements ClientInterface
     {
         $ch = curl_init($this->cfg->baseUrl() . $path);
         if ($ch === false) {
-            throw new ContinuumApiException('Network error calling Continuum: failed to initialise cURL');
+            throw new SiloApiException('Network error calling Silo: failed to initialise cURL');
         }
 
         $headers = $this->requestHeaders($body !== null);
@@ -254,7 +254,7 @@ final class Client implements ClientInterface
         if ($raw === false) {
             $err = curl_error($ch);
             curl_close($ch);
-            throw new ContinuumApiException('Network error calling Continuum: ' . $err);
+            throw new SiloApiException('Network error calling Silo: ' . $err);
         }
 
         $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
@@ -274,8 +274,8 @@ final class Client implements ClientInterface
     private function streamRequest(string $method, string $path, ?string $body): array
     {
         if (!ini_get('allow_url_fopen')) {
-            throw new ContinuumApiException(
-                'Network error calling Continuum: enable PHP cURL or allow_url_fopen'
+            throw new SiloApiException(
+                'Network error calling Silo: enable PHP cURL or allow_url_fopen'
             );
         }
 
@@ -296,7 +296,7 @@ final class Client implements ClientInterface
         if ($responseBody === false) {
             $err = error_get_last();
             $message = is_array($err) && $err !== $previousError ? (string)$err['message'] : 'request failed';
-            throw new ContinuumApiException('Network error calling Continuum: ' . $message);
+            throw new SiloApiException('Network error calling Silo: ' . $message);
         }
 
         /** @var array<int, string> $http_response_header */
@@ -358,9 +358,9 @@ final class Client implements ClientInterface
     {
         $msg = is_array($decoded) && isset($decoded['message'])
             ? $decoded['message']
-            : "Continuum returned HTTP {$status}";
-        throw new ContinuumApiException(
-            "Continuum API error: {$msg}",
+            : "Silo returned HTTP {$status}";
+        throw new SiloApiException(
+            "Silo API error: {$msg}",
             $status,
             is_array($decoded) ? $decoded : null
         );

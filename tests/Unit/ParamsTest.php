@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Unit;
+namespace Silo\WhmcsModule\Tests\Unit;
 
-use Continuum\WhmcsModule\Identity\Params;
-use Continuum\WhmcsModule\Tests\Support\TestCase;
+use Silo\WhmcsModule\Identity\Params;
+use Silo\WhmcsModule\Tests\Support\TestCase;
 
 final class ParamsTest extends TestCase
 {
@@ -26,11 +26,11 @@ final class ParamsTest extends TestCase
         self::assertSame('', Params::password([]));
     }
 
-    public function testContinuumUserIdRequiresDigits(): void
+    public function testSiloUserIdRequiresDigits(): void
     {
-        self::assertSame(42, Params::continuumUserId(['customfields' => ['continuum_user_id' => ' 42 ']]));
-        self::assertNull(Params::continuumUserId(['customfields' => ['continuum_user_id' => 'x']]));
-        self::assertNull(Params::continuumUserId(['customfields' => []]));
+        self::assertSame(42, Params::siloUserId(['customfields' => ['silo_user_id' => ' 42 ']]));
+        self::assertNull(Params::siloUserId(['customfields' => ['silo_user_id' => 'x']]));
+        self::assertNull(Params::siloUserId(['customfields' => []]));
     }
 
     public function testDesiredUsernameExactKey(): void

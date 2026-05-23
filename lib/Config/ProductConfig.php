@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Config;
+namespace Silo\WhmcsModule\Config;
 
-use Continuum\WhmcsModule\PlaybackQuality;
+use Silo\WhmcsModule\PlaybackQuality;
 
 final class ProductConfig
 {
@@ -74,7 +74,7 @@ final class ProductConfig
     }
 
     /**
-     * Whether terminating the WHMCS service should DELETE the Continuum
+     * Whether terminating the WHMCS service should DELETE the Silo
      * user (vs. only disabling it). configoption10, default ON. Read
      * standalone — no full ProductConfig validation — so an unrelated
      * config error can never block a termination.
@@ -86,7 +86,7 @@ final class ProductConfig
 
     /**
      * Whether a new order should be re-homed to a server that already
-     * hosts this customer's Continuum user (multi-server). configoption11,
+     * hosts this customer's Silo user (multi-server). configoption11,
      * default OFF. Read standalone like deleteOnTerminate so it never
      * passes through validation that could block provisioning.
      */
@@ -106,9 +106,9 @@ final class ProductConfig
 
     private static function readQuality(array $params): string
     {
-        // Canonicalise to what Continuum enforces ('', 1080p, 4k).
+        // Canonicalise to what Silo enforces ('', 1080p, 4k).
         // Legacy 720p/480p product settings degrade to 1080p rather than
-        // failing provisioning (that is Continuum's real behaviour).
+        // failing provisioning (that is Silo's real behaviour).
         return PlaybackQuality::canonical((string)($params['configoption7'] ?? ''));
     }
 

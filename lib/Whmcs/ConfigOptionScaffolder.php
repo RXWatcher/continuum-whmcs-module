@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Whmcs;
+namespace Silo\WhmcsModule\Whmcs;
 
 use WHMCS\Database\Capsule;
 
 /**
- * One-shot, idempotent scaffolding of a "Continuum Options" configurable
+ * One-shot, idempotent scaffolding of a "Silo Options" configurable
  * option group whose option names match what AttributeMapper recognises.
  *
  * Creates the group, its options/sub-options, 0.00 pricing rows for every
  * currency (so the options are valid and visible — free until an admin
- * sets real prices), and links the group to every continuum product.
+ * sets real prices), and links the group to every silo product.
  * Anything that already exists (matched by name) is left untouched, so
  * re-running never duplicates or overwrites admin-curated pricing.
  *
@@ -20,10 +20,10 @@ use WHMCS\Database\Capsule;
  */
 final class ConfigOptionScaffolder
 {
-    private const GROUP_NAME = 'Continuum Options';
+    private const GROUP_NAME = 'Silo Options';
 
     /**
-     * @param array<int, array{id:int, name:string}> $libraries live Continuum libraries (may be empty)
+     * @param array<int, array{id:int, name:string}> $libraries live Silo libraries (may be empty)
      * @return array{group:string, created:string[], skipped:string[]}
      */
     public function scaffold(array $libraries): array
@@ -36,7 +36,7 @@ final class ConfigOptionScaffolder
         if ($gid === 0) {
             $gid = (int)Capsule::table('tblproductconfiggroups')->insertGetId([
                 'name' => self::GROUP_NAME,
-                'description' => 'Auto-scaffolded by the continuum module. Set prices, then it is ready.',
+                'description' => 'Auto-scaffolded by the silo module. Set prices, then it is ready.',
             ]);
             $created[] = "group '" . self::GROUP_NAME . "'";
         } else {
@@ -54,13 +54,13 @@ final class ConfigOptionScaffolder
             }
         }
 
-        // For every continuum product: link the group and ensure the
+        // For every silo product: link the group and ensure the
         // internal custom fields exist (so a product with no provisioned
         // service yet is fully prepped from this one action). All fields
         // are created admin-only / not on the order form; an admin
         // manually enables Show on Order Form for desired_username.
         $productIds = Capsule::table('tblproducts')
-            ->where('servertype', 'continuum')->pluck('id');
+            ->where('servertype', 'silo')->pluck('id');
         $cf = new CustomFieldProvisioner();
         foreach ($productIds as $pid) {
             $cf->ensure(0, (int)$pid, CustomFieldProvisioner::moduleFields());

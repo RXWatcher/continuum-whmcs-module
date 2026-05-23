@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Identity;
+namespace Silo\WhmcsModule\Identity;
 
 /**
  * Pure static extractors over WHMCS hook `$params`. No state, no IO.
@@ -19,13 +19,13 @@ final class Params
         return trim((string)($params['username'] ?? ''));
     }
 
-    public static function continuumUserId(array $params): ?int
+    public static function siloUserId(array $params): ?int
     {
         $cf = $params['customfields'] ?? [];
-        if (!is_array($cf) || !isset($cf['continuum_user_id'])) {
+        if (!is_array($cf) || !isset($cf['silo_user_id'])) {
             return null;
         }
-        $raw = trim((string)$cf['continuum_user_id']);
+        $raw = trim((string)$cf['silo_user_id']);
         return ($raw !== '' && ctype_digit($raw)) ? (int)$raw : null;
     }
 

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Handler;
+namespace Silo\WhmcsModule\Handler;
 
-use Continuum\WhmcsModule\ContinuumApiException;
-use Continuum\WhmcsModule\HookContext;
-use Continuum\WhmcsModule\Identity\Params;
+use Silo\WhmcsModule\SiloApiException;
+use Silo\WhmcsModule\HookContext;
+use Silo\WhmcsModule\Identity\Params;
 
 final class ChangePassword
 {
@@ -20,7 +20,7 @@ final class ChangePassword
     {
         $userId = $this->ctx->identity()->resolve($params);
         if ($userId === null) {
-            return 'No Continuum user is linked to this service.';
+            return 'No Silo user is linked to this service.';
         }
         $password = Params::password($params);
         if ($password === '') {
@@ -31,7 +31,7 @@ final class ChangePassword
                 ['password' => $password],
                 $this->syncFields($params)
             ));
-        } catch (ContinuumApiException $e) {
+        } catch (SiloApiException $e) {
             return $this->humanError($e);
         }
         $this->ensureLinkage($this->ctx, $params, $userId);

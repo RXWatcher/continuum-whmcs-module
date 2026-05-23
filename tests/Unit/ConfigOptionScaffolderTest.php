@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Unit;
+namespace Silo\WhmcsModule\Tests\Unit;
 
-use Continuum\WhmcsModule\Tests\Support\FakeWhmcs;
-use Continuum\WhmcsModule\Tests\Support\TestCase;
-use Continuum\WhmcsModule\Whmcs\ConfigOptionScaffolder;
+use Silo\WhmcsModule\Tests\Support\FakeWhmcs;
+use Silo\WhmcsModule\Tests\Support\TestCase;
+use Silo\WhmcsModule\Whmcs\ConfigOptionScaffolder;
 
 final class ConfigOptionScaffolderTest extends TestCase
 {
@@ -14,15 +14,15 @@ final class ConfigOptionScaffolderTest extends TestCase
     {
         parent::setUp();
         FakeWhmcs::seedTable('tblcurrencies', [['id' => 1]]);
-        FakeWhmcs::seedTable('tblproducts', [['id' => 10, 'servertype' => 'continuum']]);
+        FakeWhmcs::seedTable('tblproducts', [['id' => 10, 'servertype' => 'silo']]);
     }
 
     public function testFreshScaffoldCreatesGroupOptionsPricingAndLinks(): void
     {
         $r = (new ConfigOptionScaffolder())->scaffold([]);
 
-        self::assertSame('Continuum Options', $r['group']);
-        self::assertContains("group 'Continuum Options'", $r['created']);
+        self::assertSame('Silo Options', $r['group']);
+        self::assertContains("group 'Silo Options'", $r['created']);
         self::assertContains('link -> product 10', $r['created']);
 
         self::assertCount(1, FakeWhmcs::rows('tblproductconfiggroups'));
@@ -41,9 +41,9 @@ final class ConfigOptionScaffolderTest extends TestCase
         $scaffolder->scaffold([]);
         $second = $scaffolder->scaffold([]);
 
-        self::assertContains("group 'Continuum Options' (exists)", $second['skipped']);
+        self::assertContains("group 'Silo Options' (exists)", $second['skipped']);
         self::assertContains('link -> product 10 (exists)', $second['skipped']);
-        self::assertNotContains("group 'Continuum Options'", $second['created']);
+        self::assertNotContains("group 'Silo Options'", $second['created']);
 
         // No duplication.
         self::assertCount(1, FakeWhmcs::rows('tblproductconfiggroups'));

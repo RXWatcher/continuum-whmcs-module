@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Unit;
+namespace Silo\WhmcsModule\Tests\Unit;
 
-use Continuum\WhmcsModule\Handler\ChangePackage;
-use Continuum\WhmcsModule\Handler\CreateAccount;
-use Continuum\WhmcsModule\Tests\Support\TestCase;
+use Silo\WhmcsModule\Handler\ChangePackage;
+use Silo\WhmcsModule\Handler\CreateAccount;
+use Silo\WhmcsModule\Tests\Support\TestCase;
 
 /**
  * Proves the harness is wired: module autoloader, WHMCS function shims,
@@ -30,7 +30,7 @@ final class SmokeTest extends TestCase
 
     public function testCapsuleFakeReadsSeededRows(): void
     {
-        \Continuum\WhmcsModule\Tests\Support\FakeWhmcs::seedTable(
+        \Silo\WhmcsModule\Tests\Support\FakeWhmcs::seedTable(
             'tblhosting',
             [['id' => 7, 'domainstatus' => 'Active']]
         );

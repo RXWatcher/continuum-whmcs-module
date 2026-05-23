@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Handler;
+namespace Silo\WhmcsModule\Handler;
 
-use Continuum\WhmcsModule\ContinuumApiException;
-use Continuum\WhmcsModule\HookContext;
+use Silo\WhmcsModule\SiloApiException;
+use Silo\WhmcsModule\HookContext;
 
 /**
  * Backs the "Test Connection" button on the WHMCS Servers page.
@@ -26,7 +26,7 @@ final class TestConnection
     {
         try {
             $this->ctx->client()->listLibraries();
-        } catch (ContinuumApiException $e) {
+        } catch (SiloApiException $e) {
             return ['success' => false, 'error' => $this->describe($e)];
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => $e->getMessage()];
@@ -34,14 +34,14 @@ final class TestConnection
         return ['success' => true, 'error' => ''];
     }
 
-    private function describe(ContinuumApiException $e): string
+    private function describe(SiloApiException $e): string
     {
         return match (true) {
             in_array($e->httpStatus(), [401, 403], true) =>
                 'Authentication failed — check the admin API key in the '
                 . 'Password / Access Hash field. (' . $e->getMessage() . ')',
             $e->httpStatus() >= 500 =>
-                'Continuum reachable but returned a server error. (' . $e->getMessage() . ')',
+                'Silo reachable but returned a server error. (' . $e->getMessage() . ')',
             default => $e->getMessage(),
         };
     }

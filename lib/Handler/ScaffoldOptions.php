@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Handler;
+namespace Silo\WhmcsModule\Handler;
 
-use Continuum\WhmcsModule\ContinuumApiException;
-use Continuum\WhmcsModule\HookContext;
-use Continuum\WhmcsModule\Whmcs\ConfigOptionScaffolder;
+use Silo\WhmcsModule\SiloApiException;
+use Silo\WhmcsModule\HookContext;
+use Silo\WhmcsModule\Whmcs\ConfigOptionScaffolder;
 
 /**
  * Backs the admin "Scaffold Configurable Options" button. Pulls the live
- * Continuum libraries (best-effort) so per-library opt-ins are scaffolded
+ * Silo libraries (best-effort) so per-library opt-ins are scaffolded
  * for the real libraries, then creates the group/options/pricing/links.
  */
 final class ScaffoldOptions
@@ -28,7 +28,7 @@ final class ScaffoldOptions
                     $libraries[] = ['id' => (int)$lib['id'], 'name' => (string)($lib['name'] ?? '')];
                 }
             }
-        } catch (ContinuumApiException $e) {
+        } catch (SiloApiException $e) {
             // Non-fatal: scaffold everything except per-library opt-ins.
         }
 
@@ -40,7 +40,7 @@ final class ScaffoldOptions
 
         if (function_exists('logActivity')) {
             logActivity(sprintf(
-                'continuum: scaffolded "%s" — created: %s | skipped: %s | libraries: %d',
+                'silo: scaffolded "%s" — created: %s | skipped: %s | libraries: %d',
                 $result['group'],
                 implode(', ', $result['created']) ?: 'none',
                 count($result['skipped']) . ' existing',

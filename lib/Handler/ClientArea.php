@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Handler;
+namespace Silo\WhmcsModule\Handler;
 
-use Continuum\WhmcsModule\ContinuumApiException;
-use Continuum\WhmcsModule\HookContext;
-use Continuum\WhmcsModule\Identity\Params;
-use Continuum\WhmcsModule\PlaybackQuality;
+use Silo\WhmcsModule\SiloApiException;
+use Silo\WhmcsModule\HookContext;
+use Silo\WhmcsModule\Identity\Params;
+use Silo\WhmcsModule\PlaybackQuality;
 
 final class ClientArea
 {
@@ -22,7 +22,7 @@ final class ClientArea
         $userId = $this->ctx->identity()->resolve($params);
         if ($userId === null) {
             return ['templatefile' => 'clientarea', 'vars' => [
-                'error' => 'Your Continuum account is not yet linked. Contact support.',
+                'error' => 'Your Silo account is not yet linked. Contact support.',
             ]];
         }
         $this->ensureLinkage($this->ctx, $params, $userId);
@@ -67,7 +67,7 @@ final class ClientArea
             $vars['library_names'] = $libIds === null
                 ? ['All libraries']
                 : $this->resolveLibraryNames($params, $libIds);
-        } catch (ContinuumApiException $e) {
+        } catch (SiloApiException $e) {
             $vars['status'] = 'active (status unavailable)';
         }
 
@@ -145,7 +145,7 @@ final class ClientArea
 
     private function humanQuality(string $q): string
     {
-        // $q comes from Continuum ('', '1080p', '2160p').
+        // $q comes from Silo ('', '1080p', '2160p').
         return PlaybackQuality::human($q);
     }
 
@@ -179,7 +179,7 @@ final class ClientArea
             return [];
         }
         $cf = $params['customfields'] ?? [];
-        $cacheRaw = is_array($cf) ? (string)($cf['continuum_library_names_cache'] ?? '') : '';
+        $cacheRaw = is_array($cf) ? (string)($cf['silo_library_names_cache'] ?? '') : '';
         if ($cacheRaw !== '') {
             $decoded = json_decode($cacheRaw, true);
             if (
@@ -191,7 +191,7 @@ final class ClientArea
         }
         try {
             $libs = $this->ctx->client()->listLibraries();
-        } catch (ContinuumApiException $e) {
+        } catch (SiloApiException $e) {
             return [];
         }
         $byId = [];
@@ -209,7 +209,7 @@ final class ClientArea
         try {
             $this->ctx->customFields()->write(
                 Params::serviceId($params),
-                'continuum_library_names_cache',
+                'silo_library_names_cache',
                 (string)json_encode(['cached_at' => time(), 'names' => $byId])
             );
         } catch (\Throwable $e) {

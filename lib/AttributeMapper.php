@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule;
+namespace Silo\WhmcsModule;
 
-use Continuum\WhmcsModule\Config\ProductConfig;
+use Silo\WhmcsModule\Config\ProductConfig;
 
 class AttributeMapper
 {
@@ -19,7 +19,7 @@ class AttributeMapper
     public function apply(ProductConfig $pc, array $serviceOptions): array
     {
         $attrs = [
-            // Every Continuum user is a 'user'. Continuum's createUser
+            // Every Silo user is a 'user'. Silo's createUser
             // requires a role, and the module sells no admin accounts, so
             // this is fixed and intentionally not configurable.
             'role' => 'user',
@@ -91,8 +91,8 @@ class AttributeMapper
             }
         }
 
-        // Continuum treats library_ids = null as "all libraries" and an
-        // empty array as "no libraries" (verified in Continuum source:
+        // Silo treats library_ids = null as "all libraries" and an
+        // empty array as "no libraries" (verified in Silo source:
         // access/resolver.go LibrariesRestricted = user.LibraryIDs != nil).
         // So when nothing is listed on the product or via configurable
         // options, send null to grant all libraries — never [].
@@ -100,7 +100,7 @@ class AttributeMapper
             $attrs['library_ids'] = null;
         }
 
-        // Continuum rejects max_profiles < 1 (400). Clamp so a 0/blank
+        // Silo rejects max_profiles < 1 (400). Clamp so a 0/blank
         // product setting can't hard-fail provisioning.
         if (($attrs['max_profiles'] ?? 0) < 1) {
             $attrs['max_profiles'] = 1;

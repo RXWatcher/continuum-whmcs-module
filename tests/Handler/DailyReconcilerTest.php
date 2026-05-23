@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Handler;
+namespace Silo\WhmcsModule\Tests\Handler;
 
-use Continuum\WhmcsModule\DailyReconciler;
-use Continuum\WhmcsModule\Tests\Support\FakeClient;
-use Continuum\WhmcsModule\Tests\Support\FakeWhmcs;
-use Continuum\WhmcsModule\Tests\Support\TestCase;
+use Silo\WhmcsModule\DailyReconciler;
+use Silo\WhmcsModule\Tests\Support\FakeClient;
+use Silo\WhmcsModule\Tests\Support\FakeWhmcs;
+use Silo\WhmcsModule\Tests\Support\TestCase;
 
 /**
  * Coverage for the completed reconciler: the daily run rebuilds the
- * full expected Continuum-user state from the WHMCS-side product
+ * full expected Silo-user state from the WHMCS-side product
  * config + configurable options + service status, and reports drift
  * for every attribute (not just `enabled`).
  */
@@ -44,7 +44,7 @@ final class DailyReconcilerTest extends TestCase
             ],
         ]);
         FakeWhmcs::seedTable('tblcustomfields', [
-            ['id' => 1, 'type' => 'product', 'fieldname' => 'continuum_user_id'],
+            ['id' => 1, 'type' => 'product', 'fieldname' => 'silo_user_id'],
         ]);
         FakeWhmcs::seedTable('tblcustomfieldsvalues', [
             ['fieldid' => 1, 'relid' => 10, 'value' => '42'],
@@ -57,7 +57,7 @@ final class DailyReconcilerTest extends TestCase
     {
         return array_values(array_filter(
             FakeWhmcs::$activityLog,
-            static fn(string $m): bool => str_starts_with($m, 'continuum reconcile drift:')
+            static fn(string $m): bool => str_starts_with($m, 'silo reconcile drift:')
         ));
     }
 
@@ -136,7 +136,7 @@ final class DailyReconcilerTest extends TestCase
     public function testQuantityConfigurableOptionBumpsExpectedStreams(): void
     {
         // Service has +5 extra streams via a quantity-type configurable
-        // option. Expected max_streams becomes 15. Continuum has 10 →
+        // option. Expected max_streams becomes 15. Silo has 10 →
         // drift expected.
         FakeWhmcs::seedTable('tblproductconfigoptions', [
             ['id' => 100, 'optionname' => 'Extra Streams', 'optiontype' => 4],
@@ -178,7 +178,7 @@ final class DailyReconcilerTest extends TestCase
 
         self::assertNotEmpty(array_filter(
             FakeWhmcs::$activityLog,
-            static fn($m) => str_contains($m, 'has no continuum_user_id')
+            static fn($m) => str_contains($m, 'has no silo_user_id')
         ));
         self::assertFalse($client->called('getUser'));
     }

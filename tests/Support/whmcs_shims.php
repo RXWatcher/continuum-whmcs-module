@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Shims for the WHMCS runtime. Bracketed namespaces let one file define
  * the `WHMCS\Database\Capsule` fake plus the global helper functions
  * (logActivity, localAPI, decrypt, …). All state lives in
- * Continuum\WhmcsModule\Tests\Support\FakeWhmcs; the Capsule query builder
+ * Silo\WhmcsModule\Tests\Support\FakeWhmcs; the Capsule query builder
  * is the PSR-4 class Tests\Support\FakeQueryBuilder.
  *
  * This file is require()d by tests/bootstrap.php (not autoloaded).
@@ -14,7 +14,7 @@ declare(strict_types=1);
 
 namespace WHMCS\Database {
 
-    use Continuum\WhmcsModule\Tests\Support\FakeQueryBuilder;
+    use Silo\WhmcsModule\Tests\Support\FakeQueryBuilder;
 
     class Capsule
     {
@@ -27,7 +27,7 @@ namespace WHMCS\Database {
 
 namespace {
 
-    use Continuum\WhmcsModule\Tests\Support\FakeWhmcs;
+    use Silo\WhmcsModule\Tests\Support\FakeWhmcs;
 
     if (!function_exists('logActivity')) {
         function logActivity($message, $userid = 0): void

@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Whmcs;
+namespace Silo\WhmcsModule\Whmcs;
 
 use WHMCS\Database\Capsule;
 
 /**
  * Creates the product-scoped service custom fields the module needs
- * (continuum_user_id, continuum_library_names_cache, and optionally
+ * (silo_user_id, silo_library_names_cache, and optionally
  * desired_username) directly in tblcustomfields when an admin hasn't
  * added them by hand. Inserting into tblcustomfields is exactly what the
  * WHMCS admin "Custom Fields" tab does, so this just removes the manual
@@ -34,13 +34,13 @@ final class CustomFieldProvisioner
     public static function moduleFields(): array
     {
         return [
-            ['name' => 'continuum_user_id', 'adminonly' => true, 'showorder' => false,
-             'description' => 'Continuum user ID (managed by the continuum module)'],
-            ['name' => 'continuum_library_names_cache', 'adminonly' => true, 'showorder' => false,
-             'description' => 'Cached Continuum library names (managed by the continuum module)'],
+            ['name' => 'silo_user_id', 'adminonly' => true, 'showorder' => false,
+             'description' => 'Silo user ID (managed by the silo module)'],
+            ['name' => 'silo_library_names_cache', 'adminonly' => true, 'showorder' => false,
+             'description' => 'Cached Silo library names (managed by the silo module)'],
             ['name' => 'desired_username|Enter your desired username',
              'adminonly' => true, 'showorder' => false,
-             'description' => 'Chosen Continuum username (blank = auto-generated). '
+             'description' => 'Chosen Silo username (blank = auto-generated). '
                  . 'To collect this from customers, an admin enables Show on Order Form.'],
         ];
     }

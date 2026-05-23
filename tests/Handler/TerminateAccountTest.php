@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Handler;
+namespace Silo\WhmcsModule\Tests\Handler;
 
-use Continuum\WhmcsModule\ContinuumApiException;
-use Continuum\WhmcsModule\Handler\TerminateAccount;
-use Continuum\WhmcsModule\HomeStore;
-use Continuum\WhmcsModule\Tests\Support\Context;
-use Continuum\WhmcsModule\Tests\Support\FakeClient;
-use Continuum\WhmcsModule\Tests\Support\TestCase;
+use Silo\WhmcsModule\SiloApiException;
+use Silo\WhmcsModule\Handler\TerminateAccount;
+use Silo\WhmcsModule\HomeStore;
+use Silo\WhmcsModule\Tests\Support\Context;
+use Silo\WhmcsModule\Tests\Support\FakeClient;
+use Silo\WhmcsModule\Tests\Support\TestCase;
 
 final class TerminateAccountTest extends TestCase
 {
@@ -17,7 +17,7 @@ final class TerminateAccountTest extends TestCase
     private function params(array $overrides = []): array
     {
         return Context::params(array_replace_recursive(
-            ['customfields' => ['continuum_user_id' => '60']],
+            ['customfields' => ['silo_user_id' => '60']],
             $overrides
         ));
     }
@@ -63,7 +63,7 @@ final class TerminateAccountTest extends TestCase
     {
         $client = new FakeClient();
         $client->usersById[60] = ['id' => 60];
-        $client->deleteUserError = new ContinuumApiException('gone', 404);
+        $client->deleteUserError = new SiloApiException('gone', 404);
 
         $result = (new TerminateAccount(Context::make($client)))->handle($this->params());
 

@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Handler;
+namespace Silo\WhmcsModule\Tests\Handler;
 
-use Continuum\WhmcsModule\ContinuumApiException;
-use Continuum\WhmcsModule\Handler\ChangePassword;
-use Continuum\WhmcsModule\Tests\Support\Context;
-use Continuum\WhmcsModule\Tests\Support\FakeClient;
-use Continuum\WhmcsModule\Tests\Support\TestCase;
+use Silo\WhmcsModule\SiloApiException;
+use Silo\WhmcsModule\Handler\ChangePassword;
+use Silo\WhmcsModule\Tests\Support\Context;
+use Silo\WhmcsModule\Tests\Support\FakeClient;
+use Silo\WhmcsModule\Tests\Support\TestCase;
 
 final class ChangePasswordTest extends TestCase
 {
@@ -23,7 +23,7 @@ final class ChangePasswordTest extends TestCase
     private function params(array $overrides = []): array
     {
         return Context::params(array_replace_recursive(
-            ['customfields' => ['continuum_user_id' => '80']],
+            ['customfields' => ['silo_user_id' => '80']],
             $overrides
         ));
     }
@@ -33,7 +33,7 @@ final class ChangePasswordTest extends TestCase
         $result = (new ChangePassword(Context::make(new FakeClient())))
             ->handle(Context::params(['username' => '', 'clientsdetails' => ['email' => '']]));
 
-        self::assertSame('No Continuum user is linked to this service.', $result);
+        self::assertSame('No Silo user is linked to this service.', $result);
     }
 
     public function testEmptyPasswordIsRejected(): void
@@ -61,10 +61,10 @@ final class ChangePasswordTest extends TestCase
     public function testApiErrorIsHumanised(): void
     {
         $client = $this->resolved();
-        $client->updateUserError = new ContinuumApiException('nope', 500);
+        $client->updateUserError = new SiloApiException('nope', 500);
 
         $result = (new ChangePassword(Context::make($client)))->handle($this->params());
 
-        self::assertSame('Continuum returned a server error. Check Module Log for details.', $result);
+        self::assertSame('Silo returned a server error. Check Module Log for details.', $result);
     }
 }

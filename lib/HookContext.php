@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule;
+namespace Silo\WhmcsModule;
 
-use Continuum\WhmcsModule\Config\ServerConfig;
-use Continuum\WhmcsModule\Continuum\ClientInterface;
-use Continuum\WhmcsModule\Whmcs\CustomFieldStore;
+use Silo\WhmcsModule\Config\ServerConfig;
+use Silo\WhmcsModule\Silo\ClientInterface;
+use Silo\WhmcsModule\Whmcs\CustomFieldStore;
 
 /**
  * Aggregates the collaborators a hook method needs. Construction from

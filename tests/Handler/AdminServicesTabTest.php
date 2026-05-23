@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Handler;
+namespace Silo\WhmcsModule\Tests\Handler;
 
-use Continuum\WhmcsModule\ContinuumApiException;
-use Continuum\WhmcsModule\Handler\AdminServicesTab;
-use Continuum\WhmcsModule\Tests\Support\Context;
-use Continuum\WhmcsModule\Tests\Support\FakeClient;
-use Continuum\WhmcsModule\Tests\Support\TestCase;
+use Silo\WhmcsModule\SiloApiException;
+use Silo\WhmcsModule\Handler\AdminServicesTab;
+use Silo\WhmcsModule\Tests\Support\Context;
+use Silo\WhmcsModule\Tests\Support\FakeClient;
+use Silo\WhmcsModule\Tests\Support\TestCase;
 
 final class AdminServicesTabTest extends TestCase
 {
     /** @return array<string, mixed> */
     private function params(): array
     {
-        return Context::params(['customfields' => ['continuum_user_id' => '7']]);
+        return Context::params(['customfields' => ['silo_user_id' => '7']]);
     }
 
     public function testUnlinkedServiceShowsReconcileHint(): void
@@ -24,7 +24,7 @@ final class AdminServicesTabTest extends TestCase
             ->handle(Context::params(['username' => '', 'clientsdetails' => ['email' => '']]));
 
         self::assertSame(
-            ['Continuum status' => 'No Continuum user is linked. Run "Reconcile from WHMCS".'],
+            ['Silo status' => 'No Silo user is linked. Run "Reconcile from WHMCS".'],
             $out
         );
     }
@@ -35,11 +35,11 @@ final class AdminServicesTabTest extends TestCase
         // getUser call is what fails.
         $client = new FakeClient();
         $client->usersByEmail['jane@example.com'] = ['id' => 7];
-        $client->getUserError = new ContinuumApiException('timeout', 504);
+        $client->getUserError = new SiloApiException('timeout', 504);
 
         $out = (new AdminServicesTab(Context::make($client)))->handle(Context::params());
 
-        self::assertStringContainsString('Continuum unreachable', $out['Continuum status']);
+        self::assertStringContainsString('Silo unreachable', $out['Silo status']);
     }
 
     public function testRendersFullUserSummaryAndDeepLink(): void
@@ -61,7 +61,7 @@ final class AdminServicesTabTest extends TestCase
             'last_active_at' => '2026-01-15T12:34:56Z',
         ];
 
-        $html = (new AdminServicesTab(Context::make($client)))->handle($this->params())['Continuum status'];
+        $html = (new AdminServicesTab(Context::make($client)))->handle($this->params())['Silo status'];
 
         // Identity + state.
         self::assertStringContainsString('<strong>User ID</strong>', $html);
@@ -78,7 +78,7 @@ final class AdminServicesTabTest extends TestCase
         self::assertStringContainsString('Up to 1080p', $html);
         self::assertStringContainsString('Last seen', $html);
 
-        self::assertStringContainsString('https://continuum.test/admin/users/7', $html);
+        self::assertStringContainsString('https://silo.test/admin/users/7', $html);
         self::assertStringContainsString('target="_blank"', $html);
     }
 
@@ -92,7 +92,7 @@ final class AdminServicesTabTest extends TestCase
             // library_ids deliberately absent.
         ];
 
-        $html = (new AdminServicesTab(Context::make($client)))->handle($this->params())['Continuum status'];
+        $html = (new AdminServicesTab(Context::make($client)))->handle($this->params())['Silo status'];
 
         self::assertStringContainsString('All libraries (unrestricted)', $html);
     }

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Unit;
+namespace Silo\WhmcsModule\Tests\Unit;
 
-use Continuum\WhmcsModule\BadWordList;
-use Continuum\WhmcsModule\Tests\Support\TestCase;
+use Silo\WhmcsModule\BadWordList;
+use Silo\WhmcsModule\Tests\Support\TestCase;
 
 final class BadWordListTest extends TestCase
 {
@@ -14,7 +14,7 @@ final class BadWordListTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->dir = sys_get_temp_dir() . '/continuum_bw_' . uniqid('', true);
+        $this->dir = sys_get_temp_dir() . '/silo_bw_' . uniqid('', true);
         mkdir($this->dir);
     }
 

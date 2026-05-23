@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule;
+namespace Silo\WhmcsModule;
 
 use WHMCS\Database\Capsule;
 
 /**
- * Durable customer → Continuum-home pointer (email → serverid/userid).
+ * Durable customer → Silo-home pointer (email → serverid/userid).
  *
  * Purely a cache/optimisation for ServerRegistry: it makes the
  * cross-server scan deterministic (probe the known home first) and cheap
@@ -19,7 +19,7 @@ use WHMCS\Database\Capsule;
  */
 final class HomeStore
 {
-    private const TABLE = 'mod_continuum_home';
+    private const TABLE = 'mod_silo_home';
     private bool $ensured = false;
 
     /** @return array{serverid:int, userid:int}|null */
@@ -59,7 +59,7 @@ final class HomeStore
     }
 
     /**
-     * Drop a pointer. Called from TerminateAccount when the Continuum user
+     * Drop a pointer. Called from TerminateAccount when the Silo user
      * is being permanently deleted (no point pointing at a deleted user;
      * a re-order is a genuine new customer), and from the ClientEdit email
      * hook so the pointer follows the rename instead of orphaning at the

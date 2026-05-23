@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Handler;
+namespace Silo\WhmcsModule\Handler;
 
-use Continuum\WhmcsModule\Config\ProductConfig;
-use Continuum\WhmcsModule\ContinuumApiException;
-use Continuum\WhmcsModule\HookContext;
-use Continuum\WhmcsModule\Identity\Params;
+use Silo\WhmcsModule\Config\ProductConfig;
+use Silo\WhmcsModule\SiloApiException;
+use Silo\WhmcsModule\HookContext;
+use Silo\WhmcsModule\Identity\Params;
 use WHMCS\Database\Capsule;
 
 final class ChangePackage
@@ -32,14 +32,14 @@ final class ChangePackage
 
         $userId = $this->ctx->identity()->resolve($params);
         if ($userId === null) {
-            return 'No Continuum user is linked to this service.';
+            return 'No Silo user is linked to this service.';
         }
 
         $svcOptions = $this->normaliseConfigurableOptions($params['configoptions'] ?? []);
         $attrs = $this->ctx->mapper()->apply($pc, $svcOptions);
 
         // Reconcile/ChangePackage must assert the enabled state, not leave
-        // it untouched: Continuum's updateUser is a partial PATCH, so an
+        // it untouched: Silo's updateUser is a partial PATCH, so an
         // omitted `enabled` would let a stale disabled user (e.g. from a
         // retain-on-terminate) survive a reconcile that reports success.
         //
@@ -60,13 +60,13 @@ final class ChangePackage
                 $userId,
                 array_merge($attrs, ['enabled' => $enabled], $this->syncFields($params))
             );
-        } catch (ContinuumApiException $e) {
+        } catch (SiloApiException $e) {
             return $this->humanError($e);
         }
         $this->ensureLinkage($this->ctx, $params, $userId);
 
         try {
-            $this->ctx->customFields()->write(Params::serviceId($params), 'continuum_library_names_cache', '');
+            $this->ctx->customFields()->write(Params::serviceId($params), 'silo_library_names_cache', '');
         } catch (\Throwable $e) {
             // Non-fatal.
         }

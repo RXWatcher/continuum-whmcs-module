@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Unit;
+namespace Silo\WhmcsModule\Tests\Unit;
 
-use Continuum\WhmcsModule\HomeStore;
-use Continuum\WhmcsModule\Tests\Support\FakeWhmcs;
-use Continuum\WhmcsModule\Tests\Support\TestCase;
+use Silo\WhmcsModule\HomeStore;
+use Silo\WhmcsModule\Tests\Support\FakeWhmcs;
+use Silo\WhmcsModule\Tests\Support\TestCase;
 
 final class HomeStoreTest extends TestCase
 {
@@ -34,7 +34,7 @@ final class HomeStoreTest extends TestCase
         $store->put('jane@example.com', 5, 88);
 
         self::assertSame(['serverid' => 5, 'userid' => 88], $store->get('jane@example.com'));
-        self::assertCount(1, FakeWhmcs::rows('mod_continuum_home'));
+        self::assertCount(1, FakeWhmcs::rows('mod_silo_home'));
     }
 
     public function testInvalidInputsAreIgnored(): void
@@ -44,7 +44,7 @@ final class HomeStoreTest extends TestCase
         $store->put('jane@example.com', 0, 77);
         $store->put('jane@example.com', 2, 0);
 
-        self::assertSame([], FakeWhmcs::rows('mod_continuum_home'));
+        self::assertSame([], FakeWhmcs::rows('mod_silo_home'));
         self::assertNull($store->get(''));
     }
 
@@ -62,7 +62,7 @@ final class HomeStoreTest extends TestCase
     public function testForgetIsSafeOnAbsentPointer(): void
     {
         (new HomeStore())->forget('nobody@example.com');
-        self::assertSame([], FakeWhmcs::rows('mod_continuum_home'));
+        self::assertSame([], FakeWhmcs::rows('mod_silo_home'));
     }
 
     public function testRenameMovesPointerToNewEmail(): void
@@ -79,7 +79,7 @@ final class HomeStoreTest extends TestCase
     public function testRenameOnAbsentPointerIsNoop(): void
     {
         (new HomeStore())->rename('old@example.com', 'new@example.com');
-        self::assertSame([], FakeWhmcs::rows('mod_continuum_home'));
+        self::assertSame([], FakeWhmcs::rows('mod_silo_home'));
     }
 
     public function testRenameWithSameEmailIsNoop(): void
@@ -88,6 +88,6 @@ final class HomeStoreTest extends TestCase
         $store->put('jane@example.com', 2, 77);
         $store->rename('jane@example.com', 'JANE@example.com');
 
-        self::assertCount(1, FakeWhmcs::rows('mod_continuum_home'));
+        self::assertCount(1, FakeWhmcs::rows('mod_silo_home'));
     }
 }

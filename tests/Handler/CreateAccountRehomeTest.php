@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Handler;
+namespace Silo\WhmcsModule\Tests\Handler;
 
-use Continuum\WhmcsModule\Handler\CreateAccount;
-use Continuum\WhmcsModule\HomeStore;
-use Continuum\WhmcsModule\Tests\Support\Context;
-use Continuum\WhmcsModule\Tests\Support\FakeClient;
-use Continuum\WhmcsModule\Tests\Support\FakeWhmcs;
-use Continuum\WhmcsModule\Tests\Support\TestCase;
+use Silo\WhmcsModule\Handler\CreateAccount;
+use Silo\WhmcsModule\HomeStore;
+use Silo\WhmcsModule\Tests\Support\Context;
+use Silo\WhmcsModule\Tests\Support\FakeClient;
+use Silo\WhmcsModule\Tests\Support\FakeWhmcs;
+use Silo\WhmcsModule\Tests\Support\TestCase;
 
 /**
  * Multi-server auto-re-home (config option auto_rehome_on_reorder /
  * configoption11). The assigned server is id 1; the customer's existing
- * Continuum user lives on server 2.
+ * Silo user lives on server 2.
  */
 final class CreateAccountRehomeTest extends TestCase
 {
@@ -22,9 +22,9 @@ final class CreateAccountRehomeTest extends TestCase
     {
         parent::setUp();
         FakeWhmcs::seedTable('tblservers', [
-            ['id' => 1, 'type' => 'continuum', 'hostname' => 'srv1', 'port' => '',
+            ['id' => 1, 'type' => 'silo', 'hostname' => 'srv1', 'port' => '',
              'secure' => 0, 'password' => 'key1', 'disabled' => 0],
-            ['id' => 2, 'type' => 'continuum', 'hostname' => 'srv2', 'port' => '',
+            ['id' => 2, 'type' => 'silo', 'hostname' => 'srv2', 'port' => '',
              'secure' => 0, 'password' => 'key2', 'disabled' => 0],
         ]);
         // The service row the move re-points (serviceid 7, on server 1).
@@ -195,9 +195,9 @@ final class CreateAccountRehomeTest extends TestCase
     public function testUserOnlyOnDisabledServerFallsBackToFreshAccount(): void
     {
         FakeWhmcs::seedTable('tblservers', [
-            ['id' => 1, 'type' => 'continuum', 'hostname' => 'srv1', 'port' => '',
+            ['id' => 1, 'type' => 'silo', 'hostname' => 'srv1', 'port' => '',
              'secure' => 0, 'password' => 'key1', 'disabled' => 0],
-            ['id' => 2, 'type' => 'continuum', 'hostname' => 'srv2', 'port' => '',
+            ['id' => 2, 'type' => 'silo', 'hostname' => 'srv2', 'port' => '',
              'secure' => 0, 'password' => 'key2', 'disabled' => 1],
         ]);
         $assigned = new FakeClient();

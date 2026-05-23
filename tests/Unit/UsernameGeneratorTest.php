@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Unit;
+namespace Silo\WhmcsModule\Tests\Unit;
 
-use Continuum\WhmcsModule\UsernameGenerator;
-use Continuum\WhmcsModule\Tests\Support\TestCase;
+use Silo\WhmcsModule\UsernameGenerator;
+use Silo\WhmcsModule\Tests\Support\TestCase;
 
 final class UsernameGeneratorTest extends TestCase
 {

@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Handler;
+namespace Silo\WhmcsModule\Tests\Handler;
 
-use Continuum\WhmcsModule\ContinuumApiException;
-use Continuum\WhmcsModule\Handler\TestConnection;
-use Continuum\WhmcsModule\Tests\Support\Context;
-use Continuum\WhmcsModule\Tests\Support\FakeClient;
-use Continuum\WhmcsModule\Tests\Support\TestCase;
+use Silo\WhmcsModule\SiloApiException;
+use Silo\WhmcsModule\Handler\TestConnection;
+use Silo\WhmcsModule\Tests\Support\Context;
+use Silo\WhmcsModule\Tests\Support\FakeClient;
+use Silo\WhmcsModule\Tests\Support\TestCase;
 
 final class TestConnectionTest extends TestCase
 {
@@ -21,7 +21,7 @@ final class TestConnectionTest extends TestCase
     public function testAuthFailureIsExplained(): void
     {
         $client = new FakeClient();
-        $client->listLibrariesError = new ContinuumApiException('401 Unauthorized', 401);
+        $client->listLibrariesError = new SiloApiException('401 Unauthorized', 401);
 
         $result = (new TestConnection(Context::make($client)))->handle();
 
@@ -33,7 +33,7 @@ final class TestConnectionTest extends TestCase
     public function testServerErrorIsExplained(): void
     {
         $client = new FakeClient();
-        $client->listLibrariesError = new ContinuumApiException('boom', 503);
+        $client->listLibrariesError = new SiloApiException('boom', 503);
 
         $result = (new TestConnection(Context::make($client)))->handle();
 
@@ -44,7 +44,7 @@ final class TestConnectionTest extends TestCase
     public function testOtherApiErrorPassesMessageThrough(): void
     {
         $client = new FakeClient();
-        $client->listLibrariesError = new ContinuumApiException('404 not found', 404);
+        $client->listLibrariesError = new SiloApiException('404 not found', 404);
 
         $result = (new TestConnection(Context::make($client)))->handle();
 

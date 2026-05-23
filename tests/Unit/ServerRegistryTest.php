@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Unit;
+namespace Silo\WhmcsModule\Tests\Unit;
 
-use Continuum\WhmcsModule\ContinuumApiException;
-use Continuum\WhmcsModule\Tests\Support\Context;
-use Continuum\WhmcsModule\Tests\Support\FakeClient;
-use Continuum\WhmcsModule\Tests\Support\FakeWhmcs;
-use Continuum\WhmcsModule\Tests\Support\TestCase;
+use Silo\WhmcsModule\SiloApiException;
+use Silo\WhmcsModule\Tests\Support\Context;
+use Silo\WhmcsModule\Tests\Support\FakeClient;
+use Silo\WhmcsModule\Tests\Support\FakeWhmcs;
+use Silo\WhmcsModule\Tests\Support\TestCase;
 
 final class ServerRegistryTest extends TestCase
 {
@@ -21,7 +21,7 @@ final class ServerRegistryTest extends TestCase
     private function row(int $id, string $key, int $disabled = 0): array
     {
         return [
-            'id' => $id, 'type' => 'continuum', 'hostname' => "srv{$id}",
+            'id' => $id, 'type' => 'silo', 'hostname' => "srv{$id}",
             'port' => '', 'secure' => 0, 'password' => $key, 'disabled' => $disabled,
         ];
     }
@@ -72,7 +72,7 @@ final class ServerRegistryTest extends TestCase
     {
         $this->seedServers([$this->row(1, 'key1'), $this->row(2, 'key2')]);
         $broken = new FakeClient();
-        $broken->findUserByEmailError = new ContinuumApiException('5xx', 503);
+        $broken->findUserByEmailError = new SiloApiException('5xx', 503);
         $good = new FakeClient();
         $good->usersByEmail['jane@example.com'] = ['id' => 5];
 

@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Handler;
+namespace Silo\WhmcsModule\Handler;
 
-use Continuum\WhmcsModule\ContinuumApiException;
-use Continuum\WhmcsModule\HookContext;
-use Continuum\WhmcsModule\Identity\Params;
+use Silo\WhmcsModule\SiloApiException;
+use Silo\WhmcsModule\HookContext;
+use Silo\WhmcsModule\Identity\Params;
 
 /**
- * Customer-initiated Continuum password reset (client-area button).
+ * Customer-initiated Silo password reset (client-area button).
  *
- * Changing the password via Continuum's admin updateUser also revokes
- * every existing session server-side (Continuum's
+ * Changing the password via Silo's admin updateUser also revokes
+ * every existing session server-side (Silo's
  * updateRequiresSessionRevocation), so this single action doubles as
  * "sign out all devices". The new password is shown once in the returned
  * status string and written back to the WHMCS service.
@@ -29,7 +29,7 @@ final class ClientResetPassword
     {
         $userId = $this->ctx->identity()->resolve($params);
         if ($userId === null) {
-            return 'Your Continuum account is not linked yet — contact support.';
+            return 'Your Silo account is not linked yet — contact support.';
         }
 
         $password = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
@@ -39,7 +39,7 @@ final class ClientResetPassword
                 ['password' => $password],
                 $this->syncFields($params)
             ));
-        } catch (ContinuumApiException $e) {
+        } catch (SiloApiException $e) {
             return 'Could not reset your password right now: ' . $this->humanError($e);
         }
         $this->ensureLinkage($this->ctx, $params, $userId);
@@ -51,11 +51,11 @@ final class ClientResetPassword
                 'servicepassword' => $password,
             ]);
         } catch (\Throwable $e) {
-            return 'Your new Continuum password is: ' . $password
+            return 'Your new Silo password is: ' . $password
                 . ' (save it now — it could not be stored on this service).' . $tail;
         }
 
-        return 'Your new Continuum password is: ' . $password
+        return 'Your new Silo password is: ' . $password
             . ' — it has also been saved to this service.' . $tail;
     }
 }

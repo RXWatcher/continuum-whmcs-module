@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule;
+namespace Silo\WhmcsModule;
 
-final class ContinuumApiException extends \RuntimeException
+final class SiloApiException extends \RuntimeException
 {
     public function __construct(
         string $message,

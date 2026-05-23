@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Unit;
+namespace Silo\WhmcsModule\Tests\Unit;
 
-use Continuum\WhmcsModule\AttributeMapper;
-use Continuum\WhmcsModule\Config\ProductConfig;
-use Continuum\WhmcsModule\Tests\Support\TestCase;
+use Silo\WhmcsModule\AttributeMapper;
+use Silo\WhmcsModule\Config\ProductConfig;
+use Silo\WhmcsModule\Tests\Support\TestCase;
 
 final class AttributeMapperTest extends TestCase
 {

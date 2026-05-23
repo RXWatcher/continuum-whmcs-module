@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Handler;
+namespace Silo\WhmcsModule\Handler;
 
-use Continuum\WhmcsModule\ContinuumApiException;
-use Continuum\WhmcsModule\HookContext;
+use Silo\WhmcsModule\SiloApiException;
+use Silo\WhmcsModule\HookContext;
 
 final class SetEnabled
 {
@@ -19,14 +19,14 @@ final class SetEnabled
     {
         $userId = $this->ctx->identity()->resolve($params);
         if ($userId === null) {
-            return 'No Continuum user is linked to this service. Run "Reconcile from WHMCS" first.';
+            return 'No Silo user is linked to this service. Run "Reconcile from WHMCS" first.';
         }
         try {
             $this->ctx->client()->updateUser($userId, array_merge(
                 ['enabled' => $enabled],
                 $this->syncFields($params)
             ));
-        } catch (ContinuumApiException $e) {
+        } catch (SiloApiException $e) {
             return $this->humanError($e);
         }
         $this->ensureLinkage($this->ctx, $params, $userId);

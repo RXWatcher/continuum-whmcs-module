@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Support;
+namespace Silo\WhmcsModule\Tests\Support;
 
 /**
  * In-memory stand-in for the WHMCS runtime state the module touches:
@@ -42,8 +42,8 @@ final class FakeWhmcs
         self::$updateClientProduct = [];
         self::$localApiHandler = null;
         self::$customFields = [
-            ['id' => 1, 'name' => 'continuum_user_id', 'value' => ''],
-            ['id' => 2, 'name' => 'continuum_library_names_cache', 'value' => ''],
+            ['id' => 1, 'name' => 'silo_user_id', 'value' => ''],
+            ['id' => 2, 'name' => 'silo_library_names_cache', 'value' => ''],
         ];
         self::$activityLog = [];
         self::$throwForTable = null;

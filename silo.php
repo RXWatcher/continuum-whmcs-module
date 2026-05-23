@@ -1,10 +1,10 @@
 <?php
 
 /**
- * WHMCS Provisioning Module: continuum
+ * WHMCS Provisioning Module: silo
  *
  * Translates WHMCS service-lifecycle hooks into calls against
- * Continuum's admin HTTP API.
+ * Silo's admin HTTP API.
  */
 
 declare(strict_types=1);
@@ -15,17 +15,17 @@ if (!defined('WHMCS')) {
 
 require_once __DIR__ . '/autoload.php';
 
-use Continuum\WhmcsModule\Hooks;
+use Silo\WhmcsModule\Hooks;
 
 /**
  * Module metadata.
  *
  * @return array<string, mixed>
  */
-function continuum_MetaData(): array
+function silo_MetaData(): array
 {
     return [
-        'DisplayName' => 'Continuum',
+        'DisplayName' => 'Silo',
         'APIVersion' => '1.1',
         'RequiresServer' => true,
         'DefaultNonSSLPort' => '80',
@@ -38,16 +38,16 @@ function continuum_MetaData(): array
  *
  * @return array<string, array<string, string>>
  */
-function continuum_ConfigOptions(): array
+function silo_ConfigOptions(): array
 {
-    // Note: every Continuum user is provisioned with role 'user'. The
+    // Note: every Silo user is provisioned with role 'user'. The
     // module deliberately exposes no role switch (admin accounts are not
     // sold). Options below map to configoption1..N by position.
     return [
         'library_ids' => [
             'FriendlyName' => 'Library IDs',
             'Type' => 'text',
-            'Description' => 'Comma-separated continuum library IDs, e.g. 1,3,5.'
+            'Description' => 'Comma-separated silo library IDs, e.g. 1,3,5.'
                 . ' Leave blank to grant access to ALL libraries (including any added later).',
         ],
         'max_streams' => [
@@ -78,7 +78,7 @@ function continuum_ConfigOptions(): array
             'FriendlyName' => 'Max playback quality',
             'Type' => 'dropdown',
             'Options' => ',1080p,4k',
-            'Description' => 'Leave blank for unrestricted. Continuum only'
+            'Description' => 'Leave blank for unrestricted. Silo only'
                 . ' enforces 1080p or 4k; older 720p/480p settings behave as 1080p.',
         ],
         'create_default_profile' => [
@@ -92,13 +92,13 @@ function continuum_ConfigOptions(): array
                 . ' custom field. If no, every account gets a generated abcd232-style username.',
         ],
         'delete_on_terminate' => [
-            'FriendlyName' => 'Delete Continuum user on termination',
+            'FriendlyName' => 'Delete Silo user on termination',
             'Type' => 'yesno', 'Default' => 'yes',
             'Description' => 'ON (default): terminating this WHMCS service PERMANENTLY DELETES the'
-                . ' Continuum user, including their profiles and watch history. This cannot be undone.'
-                . ' OFF: termination only disables the Continuum user; the account and history are kept,'
+                . ' Silo user, including their profiles and watch history. This cannot be undone.'
+                . ' OFF: termination only disables the Silo user; the account and history are kept,'
                 . ' and a later re-order re-links AND re-enables the SAME user — but only if it resolves'
-                . ' to the same Continuum server. Reactivating the same WHMCS service always does;'
+                . ' to the same Silo server. Reactivating the same WHMCS service always does;'
                 . ' with a multi-server group a brand-new order may be routed to a different server,'
                 . ' where a fresh account is created and the old history is not recovered'
                 . ' — unless the "Re-home returning customers" option below is enabled.'
@@ -109,12 +109,12 @@ function continuum_ConfigOptions(): array
             'Type' => 'yesno',
             // No Default => off (matches the yesno-checkbox convention).
             'Description' => 'OFF (default): a new order is provisioned on whatever'
-                . ' server WHMCS assigns. ON: if the customer already has a Continuum'
+                . ' server WHMCS assigns. ON: if the customer already has a Silo'
                 . ' user on another configured server (e.g. from a prior service kept'
-                . ' via "Delete Continuum user on termination" = OFF), this service is'
+                . ' via "Delete Silo user on termination" = OFF), this service is'
                 . ' moved to that server and re-linked instead of creating a fresh'
                 . ' account — preserving their profiles and watch history. No effect'
-                . ' with a single server or a shared Continuum backend.',
+                . ' with a single server or a shared Silo backend.',
         ],
     ];
 }
@@ -127,46 +127,46 @@ function continuum_ConfigOptions(): array
  * @param array<string, mixed> $params
  * @return array{success: bool, error: string}
  */
-function continuum_TestConnection(array $params): array
+function silo_TestConnection(array $params): array
 {
     return (new Hooks())->testConnection($params);
 }
 
 // === Lifecycle hooks (Phase 6 onwards) ===
 
-function continuum_CreateAccount(array $params): string
+function silo_CreateAccount(array $params): string
 {
     return (new Hooks())->createAccount($params);
 }
 
-function continuum_SuspendAccount(array $params): string
+function silo_SuspendAccount(array $params): string
 {
     return (new Hooks())->suspendAccount($params);
 }
 
-function continuum_UnsuspendAccount(array $params): string
+function silo_UnsuspendAccount(array $params): string
 {
     return (new Hooks())->unsuspendAccount($params);
 }
 
-function continuum_TerminateAccount(array $params): string
+function silo_TerminateAccount(array $params): string
 {
     return (new Hooks())->terminateAccount($params);
 }
 
-function continuum_ChangePassword(array $params): string
+function silo_ChangePassword(array $params): string
 {
     return (new Hooks())->changePassword($params);
 }
 
-function continuum_ChangePackage(array $params): string
+function silo_ChangePackage(array $params): string
 {
     return (new Hooks())->changePackage($params);
 }
 
 // === Admin custom buttons (Phase 9) ===
 
-function continuum_AdminCustomButtonArray(): array
+function silo_AdminCustomButtonArray(): array
 {
     return [
         'Reconcile from WHMCS' => 'admin_reconcile',
@@ -175,46 +175,46 @@ function continuum_AdminCustomButtonArray(): array
     ];
 }
 
-function continuum_admin_reconcile(array $params): string
+function silo_admin_reconcile(array $params): string
 {
     return (new Hooks())->adminReconcile($params);
 }
 
-function continuum_admin_scaffold_options(array $params): string
+function silo_admin_scaffold_options(array $params): string
 {
     return (new Hooks())->adminScaffoldOptions($params);
 }
 
-function continuum_admin_reset_password(array $params): string
+function silo_admin_reset_password(array $params): string
 {
     return (new Hooks())->adminResetPassword($params);
 }
 
 // === Admin tab (Phase 10) ===
 
-function continuum_AdminServicesTabFields(array $params): array
+function silo_AdminServicesTabFields(array $params): array
 {
     return (new Hooks())->adminServicesTabFields($params);
 }
 
 // === Client area (Phase 11) ===
 
-function continuum_ClientAreaCustomButtonArray(): array
+function silo_ClientAreaCustomButtonArray(): array
 {
     // The sign-in link is rendered inside the ClientArea template; this
-    // exposes the one self-service action. A Continuum password change
+    // exposes the one self-service action. A Silo password change
     // also revokes all sessions, so this is "reset + sign out everywhere".
     return [
         'Reset password & sign out all devices' => 'clientarea_resetpw',
     ];
 }
 
-function continuum_clientarea_resetpw(array $params): string
+function silo_clientarea_resetpw(array $params): string
 {
     return (new Hooks())->clientAreaResetPassword($params);
 }
 
-function continuum_ClientArea(array $params): array
+function silo_ClientArea(array $params): array
 {
     return (new Hooks())->clientArea($params);
 }

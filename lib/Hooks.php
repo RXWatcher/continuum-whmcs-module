@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule;
+namespace Silo\WhmcsModule;
 
-use Continuum\WhmcsModule\Handler\AdminResetPassword;
-use Continuum\WhmcsModule\Handler\AdminServicesTab;
-use Continuum\WhmcsModule\Handler\ChangePackage;
-use Continuum\WhmcsModule\Handler\ChangePassword;
-use Continuum\WhmcsModule\Handler\ClientArea;
-use Continuum\WhmcsModule\Handler\ClientResetPassword;
-use Continuum\WhmcsModule\Handler\CreateAccount;
-use Continuum\WhmcsModule\Handler\ScaffoldOptions;
-use Continuum\WhmcsModule\Handler\SetEnabled;
-use Continuum\WhmcsModule\Handler\TerminateAccount;
-use Continuum\WhmcsModule\Handler\TestConnection;
+use Silo\WhmcsModule\Handler\AdminResetPassword;
+use Silo\WhmcsModule\Handler\AdminServicesTab;
+use Silo\WhmcsModule\Handler\ChangePackage;
+use Silo\WhmcsModule\Handler\ChangePassword;
+use Silo\WhmcsModule\Handler\ClientArea;
+use Silo\WhmcsModule\Handler\ClientResetPassword;
+use Silo\WhmcsModule\Handler\CreateAccount;
+use Silo\WhmcsModule\Handler\ScaffoldOptions;
+use Silo\WhmcsModule\Handler\SetEnabled;
+use Silo\WhmcsModule\Handler\TerminateAccount;
+use Silo\WhmcsModule\Handler\TestConnection;
 
 /**
  * Thin dispatch facade — wires WHMCS hook entry points to the per-event
- * Handler/* classes. continuum.php may also construct handlers directly.
+ * Handler/* classes. silo.php may also construct handlers directly.
  */
 final class Hooks
 {
@@ -122,7 +122,7 @@ final class Hooks
         try {
             $ctx = $this->context($params);
         } catch (\InvalidArgumentException $e) {
-            return ['Continuum status' => 'Configuration error: ' . htmlspecialchars($e->getMessage())];
+            return ['Silo status' => 'Configuration error: ' . htmlspecialchars($e->getMessage())];
         }
         return (new AdminServicesTab($ctx))->handle($params);
     }
@@ -135,7 +135,7 @@ final class Hooks
             // Configuration detail (e.g. "API key required") must not
             // leak to customers — log it, show a generic message.
             if (function_exists('logActivity')) {
-                logActivity('continuum: client area unavailable (config error): ' . $e->getMessage());
+                logActivity('silo: client area unavailable (config error): ' . $e->getMessage());
             }
             return ['templatefile' => 'clientarea', 'vars' => [
                 'error' => 'This service is temporarily unavailable. Please contact support.',
@@ -150,7 +150,7 @@ final class Hooks
             $ctx = $this->context($params);
         } catch (\InvalidArgumentException $e) {
             if (function_exists('logActivity')) {
-                logActivity('continuum: client password reset unavailable (config error): ' . $e->getMessage());
+                logActivity('silo: client password reset unavailable (config error): ' . $e->getMessage());
             }
             return 'This service is temporarily unavailable. Please contact support.';
         }

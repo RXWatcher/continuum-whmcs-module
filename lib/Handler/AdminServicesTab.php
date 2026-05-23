@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Handler;
+namespace Silo\WhmcsModule\Handler;
 
-use Continuum\WhmcsModule\ContinuumApiException;
-use Continuum\WhmcsModule\HookContext;
-use Continuum\WhmcsModule\PlaybackQuality;
+use Silo\WhmcsModule\SiloApiException;
+use Silo\WhmcsModule\HookContext;
+use Silo\WhmcsModule\PlaybackQuality;
 
 /**
- * Backs the "Continuum status" admin tab on a service. Inline HTML is
+ * Backs the "Silo status" admin tab on a service. Inline HTML is
  * required by the WHMCS AdminServicesTabFields contract — the hook
  * returns a `[label => html]` array; there is no template mechanism for
  * this surface, hence the string concat.
  *
  * Field set mirrors what the customer sees in the client area so that
  * an admin reconciling a service can verify limits at a glance without
- * clicking through to Continuum.
+ * clicking through to Silo.
  */
 final class AdminServicesTab
 {
@@ -30,12 +30,12 @@ final class AdminServicesTab
     {
         $userId = $this->ctx->identity()->resolve($params);
         if ($userId === null) {
-            return ['Continuum status' => 'No Continuum user is linked. Run "Reconcile from WHMCS".'];
+            return ['Silo status' => 'No Silo user is linked. Run "Reconcile from WHMCS".'];
         }
         try {
             $user = $this->ctx->client()->getUser($userId);
-        } catch (ContinuumApiException $e) {
-            return ['Continuum status' => 'Continuum unreachable: ' . htmlspecialchars($e->getMessage())];
+        } catch (SiloApiException $e) {
+            return ['Silo status' => 'Silo unreachable: ' . htmlspecialchars($e->getMessage())];
         }
         $this->ensureLinkage($this->ctx, $params, $userId);
         $deepLink = htmlspecialchars($this->ctx->client()->baseUrlForDeepLink() . "/admin/users/{$userId}");
@@ -71,9 +71,9 @@ final class AdminServicesTab
             "</table>",
             "<p style='margin-top:0.5rem;'>"
                 . "<a href=\"{$deepLink}\" target=\"_blank\" rel=\"noopener\" class=\"btn btn-default\">"
-                . "Open in Continuum &rarr;</a></p>",
+                . "Open in Silo &rarr;</a></p>",
         ];
-        return ['Continuum status' => implode('', $rows)];
+        return ['Silo status' => implode('', $rows)];
     }
 
     private function row(string $label, string $valueHtml): string

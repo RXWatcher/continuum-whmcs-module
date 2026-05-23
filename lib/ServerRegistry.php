@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule;
+namespace Silo\WhmcsModule;
 
-use Continuum\WhmcsModule\Config\ServerConfig;
-use Continuum\WhmcsModule\Continuum\ClientInterface;
+use Silo\WhmcsModule\Config\ServerConfig;
+use Silo\WhmcsModule\Silo\ClientInterface;
 use WHMCS\Database\Capsule;
 
 /**
- * Cross-server lookup over every active continuum-typed WHMCS server.
+ * Cross-server lookup over every active silo-typed WHMCS server.
  *
  * Resolution in the per-service hooks is single-server (whatever WHMCS
  * assigned). When a returning customer's new order is routed to a
- * different server, their existing Continuum user — kept via
+ * different server, their existing Silo user — kept via
  * delete_on_terminate=OFF — lives elsewhere. This locates that server so
  * CreateAccount can re-home the service to it instead of creating a fresh
  * account and orphaning the history.
  *
- * The Continuum client is built through an injectable factory so tests
+ * The Silo client is built through an injectable factory so tests
  * can supply fakes; production builds a real Client per server (the same
  * tblservers + decrypt() pattern hooks.php already uses).
  */
@@ -34,7 +34,7 @@ final class ServerRegistry
     }
 
     /**
-     * Locate the server hosting the Continuum user for $email (then,
+     * Locate the server hosting the Silo user for $email (then,
      * failing that, $username). $preferServerId is probed first — pass the
      * cached HomeStore pointer to make this deterministic and cheap.
      *
@@ -88,11 +88,11 @@ final class ServerRegistry
         return $byUsername;
     }
 
-    /** @return array<int, object> active (non-disabled) continuum servers */
+    /** @return array<int, object> active (non-disabled) silo servers */
     private function activeServers(): array
     {
         try {
-            $rows = Capsule::table('tblservers')->where('type', 'continuum')->get();
+            $rows = Capsule::table('tblservers')->where('type', 'silo')->get();
         } catch (\Throwable $e) {
             return [];
         }

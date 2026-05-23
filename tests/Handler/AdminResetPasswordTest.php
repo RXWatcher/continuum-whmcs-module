@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Handler;
+namespace Silo\WhmcsModule\Tests\Handler;
 
-use Continuum\WhmcsModule\ContinuumApiException;
-use Continuum\WhmcsModule\Handler\AdminResetPassword;
-use Continuum\WhmcsModule\Tests\Support\Context;
-use Continuum\WhmcsModule\Tests\Support\FakeClient;
-use Continuum\WhmcsModule\Tests\Support\FakeWhmcs;
-use Continuum\WhmcsModule\Tests\Support\TestCase;
+use Silo\WhmcsModule\SiloApiException;
+use Silo\WhmcsModule\Handler\AdminResetPassword;
+use Silo\WhmcsModule\Tests\Support\Context;
+use Silo\WhmcsModule\Tests\Support\FakeClient;
+use Silo\WhmcsModule\Tests\Support\FakeWhmcs;
+use Silo\WhmcsModule\Tests\Support\TestCase;
 
 final class AdminResetPasswordTest extends TestCase
 {
@@ -23,7 +23,7 @@ final class AdminResetPasswordTest extends TestCase
     /** @return array<string, mixed> */
     private function params(): array
     {
-        return Context::params(['customfields' => ['continuum_user_id' => '81']]);
+        return Context::params(['customfields' => ['silo_user_id' => '81']]);
     }
 
     public function testUnresolvedUserReturnsError(): void
@@ -31,7 +31,7 @@ final class AdminResetPasswordTest extends TestCase
         $result = (new AdminResetPassword(Context::make(new FakeClient())))
             ->handle(Context::params(['username' => '', 'clientsdetails' => ['email' => '']]));
 
-        self::assertSame('No Continuum user is linked to this service.', $result);
+        self::assertSame('No Silo user is linked to this service.', $result);
     }
 
     public function testGeneratesPasswordPushesItAndWritesBackToWhmcs(): void
@@ -54,18 +54,18 @@ final class AdminResetPasswordTest extends TestCase
         self::assertSame(
             $sent['password'],
             array_values($writeBacks)[0]['servicepassword'],
-            'WHMCS service password must match what was pushed to Continuum'
+            'WHMCS service password must match what was pushed to Silo'
         );
     }
 
     public function testApiErrorIsHumanised(): void
     {
         $client = $this->resolved();
-        $client->updateUserError = new ContinuumApiException('boom', 502);
+        $client->updateUserError = new SiloApiException('boom', 502);
 
         $result = (new AdminResetPassword(Context::make($client)))->handle($this->params());
 
-        self::assertSame('Continuum returned a server error. Check Module Log for details.', $result);
+        self::assertSame('Silo returned a server error. Check Module Log for details.', $result);
     }
 
     public function testWriteBackFailureDegradesToSuccessWithWarning(): void

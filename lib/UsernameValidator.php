@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule;
+namespace Silo\WhmcsModule;
 
 final class UsernameValidator
 {
@@ -12,7 +12,7 @@ final class UsernameValidator
     private const BUILTIN_RESERVED = [
         'admin', 'root', 'system', 'support', 'null', 'undefined',
         'me', 'you', 'staff', 'help', 'about', 'login', 'logout',
-        'continuum',
+        'silo',
     ];
 
     /** @var array<string, bool> case-folded */

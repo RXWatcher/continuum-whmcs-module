@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Unit;
+namespace Silo\WhmcsModule\Tests\Unit;
 
-use Continuum\WhmcsModule\Config\ServerConfig;
-use Continuum\WhmcsModule\Tests\Support\TestCase;
+use Silo\WhmcsModule\Config\ServerConfig;
+use Silo\WhmcsModule\Tests\Support\TestCase;
 
 final class ServerConfigTest extends TestCase
 {

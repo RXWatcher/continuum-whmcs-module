@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Continuum\WhmcsModule\Tests\Support;
+namespace Silo\WhmcsModule\Tests\Support;
 
-use Continuum\WhmcsModule\Continuum\ClientInterface;
-use Continuum\WhmcsModule\ContinuumApiException;
+use Silo\WhmcsModule\Silo\ClientInterface;
+use Silo\WhmcsModule\SiloApiException;
 
 /**
- * Scriptable in-memory Continuum API client. Records every call so tests
+ * Scriptable in-memory Silo API client. Records every call so tests
  * can assert on payloads (notably the `enabled` flag).
  */
 class FakeClient implements ClientInterface
@@ -25,17 +25,17 @@ class FakeClient implements ClientInterface
     /** @var array<string, array<string, mixed>>  username => user record */
     public array $usersByUsername = [];
 
-    /** @var array<int, array<string, mixed>|ContinuumApiException>  consumed FIFO by createUser() */
+    /** @var array<int, array<string, mixed>|SiloApiException>  consumed FIFO by createUser() */
     public array $createUserQueue = [];
 
     /** @var array<string, mixed> */
     public array $updateUserResult = ['id' => 0];
 
-    public ?ContinuumApiException $updateUserError = null;
-    public ?ContinuumApiException $deleteUserError = null;
-    public ?ContinuumApiException $getUserError = null;
-    public ?ContinuumApiException $findUserByEmailError = null;
-    public ?ContinuumApiException $findUserByUsernameError = null;
+    public ?SiloApiException $updateUserError = null;
+    public ?SiloApiException $deleteUserError = null;
+    public ?SiloApiException $getUserError = null;
+    public ?SiloApiException $findUserByEmailError = null;
+    public ?SiloApiException $findUserByUsernameError = null;
 
     /** @var array<int, array<string, mixed>> */
     public array $libraries = [];
@@ -53,7 +53,7 @@ class FakeClient implements ClientInterface
     {
         $this->calls[] = ['method' => 'createUser', 'args' => [$payload]];
         $next = array_shift($this->createUserQueue);
-        if ($next instanceof ContinuumApiException) {
+        if ($next instanceof SiloApiException) {
             throw $next;
         }
         return $next ?? ['id' => 100];
@@ -132,7 +132,7 @@ class FakeClient implements ClientInterface
 
     public function baseUrlForDeepLink(): string
     {
-        return 'https://continuum.test';
+        return 'https://silo.test';
     }
 
     // --- assertion helpers -------------------------------------------------
