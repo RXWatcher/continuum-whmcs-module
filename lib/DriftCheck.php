@@ -46,14 +46,23 @@ final class DriftCheck
                 . " but Silo has " . (string)($siloObserved['role'] ?? '');
         }
 
-        if (isset($whmcsExpected['library_ids'])) {
+        if (array_key_exists('library_ids', $whmcsExpected)) {
             $exp = $whmcsExpected['library_ids'];
-            sort($exp);
-            $obs = $siloObserved['library_ids'] ?? [];
-            sort($obs);
-            if ($exp !== $obs) {
-                $drifts[] = "{$prefix}: library_ids expected=["
-                    . implode(',', $exp) . "] but Silo has [" . implode(',', $obs) . "]";
+            $obs = $siloObserved['library_ids'] ?? null;
+            if ($exp === null || $obs === null) {
+                if ($exp !== $obs) {
+                    $drifts[] = "{$prefix}: library_ids expected="
+                        . ($exp === null ? 'ALL' : '[' . implode(',', (array)$exp) . ']')
+                        . " but Silo has "
+                        . ($obs === null ? 'ALL' : '[' . implode(',', (array)$obs) . ']');
+                }
+            } else {
+                sort($exp);
+                sort($obs);
+                if ($exp !== $obs) {
+                    $drifts[] = "{$prefix}: library_ids expected=["
+                        . implode(',', $exp) . "] but Silo has [" . implode(',', $obs) . "]";
+                }
             }
         }
 

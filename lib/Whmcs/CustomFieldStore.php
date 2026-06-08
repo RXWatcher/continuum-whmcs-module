@@ -81,6 +81,13 @@ final class CustomFieldStore
         if (($resp['result'] ?? '') !== 'success') {
             throw new \RuntimeException('GetClientsProducts returned: ' . json_encode($resp));
         }
-        return $resp['products']['product'][0]['customfields']['customfield'] ?? [];
+        $fields = $resp['products']['product'][0]['customfields']['customfield'] ?? [];
+        if (!is_array($fields)) {
+            return [];
+        }
+        if (isset($fields['id'], $fields['name'])) {
+            return [$fields];
+        }
+        return $fields;
     }
 }

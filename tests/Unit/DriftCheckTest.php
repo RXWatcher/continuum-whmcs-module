@@ -52,6 +52,13 @@ final class DriftCheckTest extends TestCase
         self::assertStringContainsString('library_ids expected=[1,2]', $d[0]);
     }
 
+    public function testUnrestrictedLibrariesMismatchReported(): void
+    {
+        $d = DriftCheck::compare(1, 2, ['library_ids' => null], ['library_ids' => [1]]);
+        self::assertCount(1, $d);
+        self::assertStringContainsString('library_ids expected=ALL', $d[0]);
+    }
+
     public function testIntAndBoolFieldDrift(): void
     {
         $d = DriftCheck::compare(1, 2, [
