@@ -492,8 +492,8 @@ CI runs the suite on every push and PR (`.github/workflows/tests.yml`,
 PHP 8.2–8.4) plus a `php -l` lint at the 8.1 runtime floor.
 
 Release validation should still include a staging WHMCS install before
-publishing the packaged archive — see the pre-deploy smoke in
-`docs/whmcs-contracts.md`.
+publishing the packaged archive — run
+`docs/staging-smoke-checklist.md`.
 
 ## Security Notes
 

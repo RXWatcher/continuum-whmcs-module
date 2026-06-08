@@ -295,8 +295,8 @@ version:
   returns its message on the theme, and a live Silo session is
   actually rejected afterward.
 
-All can be checked by running one CreateAccount, one Reset Password, one
-scaffold, one daily-cron, one terminate→same-server re-order, one
-reconcile-on-Suspended, one multi-server re-order (re-home), and one
-client-area view + self-service reset manually against staging and
-inspecting the result.
+Use [staging-smoke-checklist.md](staging-smoke-checklist.md) for the
+step-by-step staging run. It covers one CreateAccount, one Reset Password,
+one scaffold, one daily-cron, one terminate→same-server re-order, one
+reconcile-on-Suspended, one multi-server re-order (re-home), one client-area
+view + self-service reset, and the release archive sanity check.
