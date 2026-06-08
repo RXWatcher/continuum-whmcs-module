@@ -44,6 +44,7 @@ final class ClientArea
             'last_seen_relative' => 'never',
             'login_url' => $this->ctx->client()->baseUrlForDeepLink() . '/',
         ];
+        $canShowActiveStreams = false;
 
         try {
             $user = $this->ctx->client()->getUser($userId);
@@ -56,6 +57,8 @@ final class ClientArea
             $vars['member_since'] = $this->humanDate((string)($user['created_at'] ?? ''));
             if (!($user['enabled'] ?? true)) {
                 $vars['status'] = 'suspended';
+            } else {
+                $canShowActiveStreams = true;
             }
             if (!empty($user['last_active_at'])) {
                 $vars['last_seen_relative'] = $this->humanRelativeTime((string)$user['last_active_at']);
@@ -84,11 +87,13 @@ final class ClientArea
             // leave profiles_used null → template hides the row
         }
 
-        try {
-            $vars['now_watching'] = $this->activeStreamLabels($userId);
-            $vars['active_streams'] = count($vars['now_watching']);
-        } catch (\Throwable $e) {
-            // leave active_streams null → template hides the row
+        if ($canShowActiveStreams) {
+            try {
+                $vars['now_watching'] = $this->activeStreamLabels($userId);
+                $vars['active_streams'] = count($vars['now_watching']);
+            } catch (\Throwable $e) {
+                // leave active_streams null → template hides the row
+            }
         }
 
         return ['templatefile' => 'clientarea', 'vars' => $vars];

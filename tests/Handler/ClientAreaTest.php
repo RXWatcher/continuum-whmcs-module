@@ -57,6 +57,18 @@ final class ClientAreaTest extends TestCase
         self::assertSame('suspended', $vars['status']);
     }
 
+    public function testSuspendedUserSkipsServerWideSessionsCall(): void
+    {
+        $client = new FakeClient();
+        $client->usersById[5] = ['id' => 5, 'enabled' => false, 'library_ids' => []];
+
+        $vars = (new ClientArea(Context::make($client)))->handle($this->params())['vars'];
+
+        self::assertSame('suspended', $vars['status']);
+        self::assertNull($vars['active_streams']);
+        self::assertFalse($client->called('listSessions'), 'suspended services do not need playback enrichment');
+    }
+
     public function testGetUserFailureDegradesGracefully(): void
     {
         // Resolve via email (tier 2, no getUser) so the handler's own
@@ -68,6 +80,19 @@ final class ClientAreaTest extends TestCase
         $vars = (new ClientArea(Context::make($client)))->handle(Context::params())['vars'];
 
         self::assertSame('active (status unavailable)', $vars['status']);
+    }
+
+    public function testStatusUnavailableSkipsServerWideSessionsCall(): void
+    {
+        $client = new FakeClient();
+        $client->usersByEmail['jane@example.com'] = ['id' => 5];
+        $client->getUserError = new SiloApiException('down', 503);
+
+        $vars = (new ClientArea(Context::make($client)))->handle(Context::params())['vars'];
+
+        self::assertSame('active (status unavailable)', $vars['status']);
+        self::assertNull($vars['active_streams']);
+        self::assertFalse($client->called('listSessions'), 'unavailable status should not trigger sessions scan');
     }
 
     public function testLibraryNamesServedFromFreshCache(): void
