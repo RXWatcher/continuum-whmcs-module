@@ -95,6 +95,15 @@ final class ProductConfig
         return self::readYesNo($params, 'configoption11', false);
     }
 
+    /**
+     * Whether customers can use the client-area "reset password & sign out"
+     * action. configoption12, default ON for backwards compatibility.
+     */
+    public static function allowClientResetPassword(array $params): bool
+    {
+        return self::readYesNo($params, 'configoption12', true);
+    }
+
     private static function readYesNo(array $params, string $key, bool $default): bool
     {
         $raw = trim((string)($params[$key] ?? ''));

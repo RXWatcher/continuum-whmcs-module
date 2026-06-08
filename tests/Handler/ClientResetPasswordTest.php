@@ -34,6 +34,19 @@ final class ClientResetPasswordTest extends TestCase
         self::assertStringContainsString('not linked yet', $result);
     }
 
+    public function testDisabledByProductConfigDoesNotResetPassword(): void
+    {
+        $client = $this->resolved();
+        $result = (new ClientResetPassword(Context::make($client)))
+            ->handle(Context::params([
+                'configoption12' => 'no',
+                'customfields' => ['silo_user_id' => '5'],
+            ]));
+
+        self::assertStringContainsString('disabled for this service', $result);
+        self::assertFalse($client->called('updateUser'));
+    }
+
     public function testResetsPushesPasswordAndReportsSignOut(): void
     {
         $client = $this->resolved();

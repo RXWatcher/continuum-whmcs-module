@@ -116,6 +116,14 @@ function silo_ConfigOptions(): array
                 . ' account — preserving their profiles and watch history. No effect'
                 . ' with a single server or a shared Silo backend.',
         ],
+        'allow_client_reset_password' => [
+            'FriendlyName' => 'Allow client-area password reset',
+            'Type' => 'yesno',
+            'Default' => 'yes',
+            'Description' => 'ON (default): customers can use the client-area reset button,'
+                . ' which shows the generated password once and writes it to the WHMCS service.'
+                . ' OFF: only staff can reset passwords from the admin service page.',
+        ],
     ];
 }
 

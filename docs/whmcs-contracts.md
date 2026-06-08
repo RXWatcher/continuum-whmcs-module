@@ -121,8 +121,9 @@ day, unconditionally. If a per-server opt-out becomes necessary, the
 cleanest re-introduction is a per-product config option (the only place
 WHMCS reliably surfaces extra fields). Slot map remains: there is no
 `role` option (every user is provisioned as `user`); `configoption10` /
-`configoption11` are `delete_on_terminate` / `auto_rehome_on_reorder`;
-the next free slot is `configoption12`.
+`configoption11` / `configoption12` are `delete_on_terminate` /
+`auto_rehome_on_reorder` / `allow_client_reset_password`; the next free
+slot is `configoption13`.
 
 ## 8. `UpdateClientProduct` service-credential params + `serverport` — FIXED ✓ (verify pre-deploy)
 
@@ -249,12 +250,15 @@ version:
   the customer**. Each call degrades independently (a failure blanks only
   that row, never the page). **Verify:** both endpoints exist and return
   those shapes; the page renders with one or both unavailable.
-- **Password reset = sign-out-everywhere.** The self-service button
-  changes the password via admin `updateUser`, which Silo treats as
-  session-revoking (`updateRequiresSessionRevocation` is true when
-  `password` is set). **Verify:** after a client-area reset, a
-  previously-authenticated Silo session is actually rejected — this
-  is the claim shown to the customer.
+- **Password reset = sign-out-everywhere.** The self-service button is
+  gated by `configoption12` (`allow_client_reset_password`, default ON).
+  When enabled, it changes the password via admin `updateUser`, which
+  Silo treats as session-revoking (`updateRequiresSessionRevocation` is
+  true when `password` is set). The generated password is shown once in
+  the returned WHMCS action message and written to the WHMCS service
+  password; turn the option OFF when resets should be staff-only.
+  **Verify:** after a client-area reset, a previously-authenticated Silo
+  session is actually rejected — this is the claim shown to the customer.
 - **Cost.** Up to ~3 admin-API calls per client-area view (`getUser` +
   profiles + sessions; library names stay 24h-cached). `/admin/sessions`
   is server-wide and filtered client-side — fine at normal volume; note
@@ -270,8 +274,9 @@ version:
   non-default server-form port surfaces as `$params['serverport']`.
 - §9: scaffolded configurable options + auto-created custom fields render
   correctly on the order form, and `configoption9` is still "Allow
-  customer-chosen username" (no `role` option; numbering starts at
-  `library_ids` = `configoption1`).
+  customer-chosen username" while `configoption12` is "Allow client-area
+  password reset" (no `role` option; numbering starts at `library_ids` =
+  `configoption1`).
 - §1: the `enabled`-state assertion. (a) Terminate a service with
   `delete_on_terminate=OFF`, re-order on the **same** server, and confirm
   the Silo user comes back **enabled** — not merely relinked. (b) Run

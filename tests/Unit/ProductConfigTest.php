@@ -76,6 +76,13 @@ final class ProductConfigTest extends TestCase
         self::assertTrue(ProductConfig::autoRehome(['configoption11' => 'on']));
     }
 
+    public function testClientResetPasswordDefaultsOn(): void
+    {
+        self::assertTrue(ProductConfig::allowClientResetPassword([]));
+        self::assertTrue(ProductConfig::allowClientResetPassword(['configoption12' => 'on']));
+        self::assertFalse(ProductConfig::allowClientResetPassword(['configoption12' => 'no']));
+    }
+
     public function testPlaybackQualityIsCanonicalised(): void
     {
         self::assertSame('1080p', ProductConfig::fromParams(['configoption7' => '720p'])->maxPlaybackQuality());

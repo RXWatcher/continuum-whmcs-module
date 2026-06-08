@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Silo\WhmcsModule\Handler;
 
+use Silo\WhmcsModule\Config\ProductConfig;
 use Silo\WhmcsModule\SiloApiException;
 use Silo\WhmcsModule\HookContext;
 use Silo\WhmcsModule\Identity\Params;
@@ -27,6 +28,10 @@ final class ClientResetPassword
 
     public function handle(array $params): string
     {
+        if (!ProductConfig::allowClientResetPassword($params)) {
+            return 'Password reset is disabled for this service. Contact support.';
+        }
+
         $userId = $this->ctx->identity()->resolve($params);
         if ($userId === null) {
             return 'Your Silo account is not linked yet — contact support.';

@@ -115,6 +115,7 @@ sells no admin accounts, so role is fixed and not a configurable field.
 | Allow customer-chosen username | See [Username Behavior](#username-behavior). |
 | Delete Silo user on termination | **Default ON.** ON: terminating the service permanently deletes the Silo user (profiles + watch history; cannot be undone). OFF: termination only disables the user (data retained; a re-order re-links only if it resolves to the same Silo server — see [Service Lifecycle](#service-lifecycle)). |
 | Re-home returning customers (multi-server) | **Default OFF.** ON: a new order whose user already exists on another configured Silo server moves the service to that server and re-links the existing user instead of creating a fresh account. See [Re-home returning customers](#re-home-returning-customers-multi-server). |
+| Allow client-area password reset | **Default ON.** ON: customers can use the client-area reset action; the generated password is shown once and written to the WHMCS service. OFF: only staff can reset passwords from the admin service page. |
 
 ### Custom fields (auto-created)
 
@@ -354,7 +355,8 @@ On a Silo-backed WHMCS service, staff can use:
 - `Reset Password`: generates a strong password, updates Silo, and writes
   it back to the WHMCS service password (WHMCS-encrypted). Also signs the
   customer out of all devices (Silo revokes sessions on a password
-  change). Customers can self-serve the same action from the client area.
+  change). Customers can self-serve the same action from the client area
+  when **Allow client-area password reset** is ON.
 - `Scaffold Configurable Options`: see [Configurable Options](#configurable-options).
 
 ## Client Area
@@ -371,10 +373,12 @@ The module renders `templates/clientarea.tpl` for the customer service page:
 - **Libraries** — names ("All libraries" when unrestricted), last-seen time,
   and a sign-in link.
 
-Self-service: a **Reset password & sign out all devices** button. A Silo
-admin password change also revokes every session server-side, so this one
-action both rotates the password (shown once, also written to the WHMCS
-service) and signs the customer out everywhere.
+Self-service: a **Reset password & sign out all devices** button when
+**Allow client-area password reset** is ON (default). A Silo admin password
+change also revokes every session server-side, so this one action both
+rotates the password and signs the customer out everywhere. The generated
+password is shown once in WHMCS and written to the service password; turn
+the option OFF if staff should handle resets instead.
 
 Each enrichment (`getUser`, profiles, sessions) degrades **independently** —
 if one Silo call fails the rest of the page still renders. All output is
