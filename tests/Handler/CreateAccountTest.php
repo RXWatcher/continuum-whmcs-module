@@ -39,6 +39,27 @@ final class CreateAccountTest extends TestCase
         self::assertTrue($payload['enabled'], 'enabled must be asserted true');
     }
 
+    public function testExistingUserReLinkSyncsServiceUsernameBackToWhmcs(): void
+    {
+        // On re-link, the Silo username is authoritative — write it back
+        // to the WHMCS service so the admin/customer see a consistent
+        // handle (the fresh-create and re-home paths already do this).
+        $client = new FakeClient();
+        $client->usersById[42] = ['id' => 42, 'username' => 'jhandle'];
+        $client->updateUserResult = ['id' => 42, 'username' => 'jhandle'];
+        $params = Context::params(['customfields' => ['silo_user_id' => '42']]);
+
+        $result = (new CreateAccount(Context::make($client)))->handle($params);
+
+        self::assertSame('success', $result);
+        $usernames = array_filter(
+            FakeWhmcs::$updateClientProduct,
+            static fn($p) => isset($p['serviceusername'])
+        );
+        self::assertNotEmpty($usernames, 'service username must be written back on re-link');
+        self::assertSame('jhandle', array_values($usernames)[0]['serviceusername']);
+    }
+
     public function testNewUserGetsGeneratedUsernameAndLinkageIsWrittenBack(): void
     {
         $client = new FakeClient();

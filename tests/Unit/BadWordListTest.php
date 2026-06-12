@@ -46,6 +46,23 @@ final class BadWordListTest extends TestCase
         self::assertFalse($list->contains('clean'));
     }
 
+    public function testContainsMatchesBadWordAsSubstring(): void
+    {
+        $path = $this->writeFile('w.txt', "fuck\n");
+        $list = BadWordList::fromFile($path);
+
+        self::assertTrue($list->contains('fuck'), 'exact match still works');
+        self::assertTrue($list->contains('fuckers'), 'embedded bad word is caught');
+        self::assertTrue($list->contains('ASSFUCK'), 'case-insensitive substring');
+        self::assertFalse($list->contains('clean'));
+    }
+
+    public function testEmptyListContainsNothing(): void
+    {
+        $list = BadWordList::fromFile($this->dir . '/nope.txt');
+        self::assertFalse($list->contains('anything'));
+    }
+
     public function testMissingFileYieldsEmptyList(): void
     {
         self::assertSame([], BadWordList::fromFile($this->dir . '/nope.txt')->entries());

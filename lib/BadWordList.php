@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Silo\WhmcsModule;
 
 /**
- * Whole-word, case-folded match against a list of disallowed usernames.
+ * Case-folded substring match against a list of disallowed usernames:
+ * a candidate is rejected if it equals or contains any listed word.
  *
  * Default ships in data/bad_words.default.txt. Operators replace (not
  * merge) the default by dropping bad_words.txt next to silo.php;
@@ -51,9 +52,27 @@ final class BadWordList
         return is_readable($override) ? self::fromFile($override) : self::default();
     }
 
+    /**
+     * True if the candidate IS a listed word or CONTAINS one as a
+     * substring (case-folded). Substring matching means "fuck" in the
+     * list also rejects "fuckers"/"assfuck"; operators tune false
+     * positives by curating the list (short, ambiguous fragments catch
+     * more). An exact-match hit short-circuits the scan.
+     */
     public function contains(string $candidate): bool
     {
-        return isset($this->words[strtolower($candidate)]);
+        $candidate = strtolower($candidate);
+        if (isset($this->words[$candidate])) {
+            return true;
+        }
+        foreach ($this->words as $word => $_) {
+            // PHP casts numeric-string array keys to int — normalise back.
+            $word = (string)$word;
+            if ($word !== '' && str_contains($candidate, $word)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** @return string[] alphabetical, lowercase */

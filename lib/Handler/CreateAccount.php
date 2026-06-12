@@ -62,7 +62,7 @@ final class CreateAccount
                 // Silo's updateUser is a partial PATCH (auth/repository.go
                 // Update only touches `enabled` when it's present), so an
                 // omitted `enabled` leaves the stale disabled state intact.
-                $this->ctx->client()->updateUser(
+                $updated = $this->ctx->client()->updateUser(
                     $existingId,
                     array_merge($attrs, ['enabled' => true], $this->syncFields($params))
                 );
@@ -70,6 +70,12 @@ final class CreateAccount
                 return $this->humanError($e);
             }
             $this->ensureLinkage($this->ctx, $params, $existingId);
+            // Sync the WHMCS service username to the authoritative Silo
+            // handle, like the fresh-create and re-home paths do.
+            $username = (string)($updated['username'] ?? '');
+            if ($username !== '') {
+                $this->writeServiceUsername($params, $username);
+            }
             $this->rememberHome($params, $this->assignedServerId($params), $existingId);
             return 'success';
         }

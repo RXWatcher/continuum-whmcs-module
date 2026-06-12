@@ -9,6 +9,7 @@ use Silo\WhmcsModule\Handler\TerminateAccount;
 use Silo\WhmcsModule\HomeStore;
 use Silo\WhmcsModule\Tests\Support\Context;
 use Silo\WhmcsModule\Tests\Support\FakeClient;
+use Silo\WhmcsModule\Tests\Support\FakeWhmcs;
 use Silo\WhmcsModule\Tests\Support\TestCase;
 
 final class TerminateAccountTest extends TestCase
@@ -46,6 +47,56 @@ final class TerminateAccountTest extends TestCase
         self::assertSame('success', $result);
         self::assertFalse($client->called('deleteUser'));
         self::assertFalse($client->lastUpdateUserPayload()['enabled']);
+    }
+
+    public function testDoesNotDeleteUserSharedByAnotherActiveService(): void
+    {
+        // Two WHMCS services for the same customer resolve (by email/id)
+        // to ONE Silo user. Terminating one with delete ON must NOT
+        // destroy the account the other still-active service depends on —
+        // it disables instead.
+        $client = new FakeClient();
+        $client->usersById[60] = ['id' => 60, 'email' => 'jane@example.com'];
+
+        FakeWhmcs::seedTable('tblcustomfields', [
+            ['id' => 10, 'type' => 'product', 'fieldname' => 'silo_user_id', 'relid' => 3],
+        ]);
+        FakeWhmcs::seedTable('tblcustomfieldsvalues', [
+            ['fieldid' => 10, 'relid' => 7, 'value' => '60'], // the one being terminated
+            ['fieldid' => 10, 'relid' => 8, 'value' => '60'], // a sibling service
+        ]);
+        FakeWhmcs::seedTable('tblhosting', [
+            ['id' => 8, 'domainstatus' => 'Active'],
+        ]);
+
+        $result = (new TerminateAccount(Context::make($client)))->handle($this->params());
+
+        self::assertSame('success', $result);
+        self::assertFalse($client->called('deleteUser'), 'shared user must survive');
+        self::assertFalse($client->lastUpdateUserPayload()['enabled'], 'disabled instead of deleted');
+    }
+
+    public function testDeletesWhenSiblingServiceIsNotActive(): void
+    {
+        // A cancelled/terminated sibling does not keep the user alive.
+        $client = new FakeClient();
+        $client->usersById[60] = ['id' => 60, 'email' => 'jane@example.com'];
+
+        FakeWhmcs::seedTable('tblcustomfields', [
+            ['id' => 10, 'type' => 'product', 'fieldname' => 'silo_user_id', 'relid' => 3],
+        ]);
+        FakeWhmcs::seedTable('tblcustomfieldsvalues', [
+            ['fieldid' => 10, 'relid' => 7, 'value' => '60'],
+            ['fieldid' => 10, 'relid' => 8, 'value' => '60'],
+        ]);
+        FakeWhmcs::seedTable('tblhosting', [
+            ['id' => 8, 'domainstatus' => 'Terminated'],
+        ]);
+
+        $result = (new TerminateAccount(Context::make($client)))->handle($this->params());
+
+        self::assertSame('success', $result);
+        self::assertTrue($client->called('deleteUser'));
     }
 
     public function testNoLinkedUserStillSucceeds(): void

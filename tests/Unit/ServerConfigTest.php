@@ -19,11 +19,38 @@ final class ServerConfigTest extends TestCase
         ], $extra));
     }
 
-    public function testInsecureBaseUrl(): void
+    public function testInsecureBaseUrlAllowedForLoopback(): void
     {
-        $c = $this->cfg([]);
-        self::assertSame('http://host.example', $c->baseUrl());
+        // http is permitted to local/private hosts (dev, LAN backends).
+        $c = $this->cfg(['serverhostname' => 'localhost']);
+        self::assertSame('http://localhost', $c->baseUrl());
         self::assertSame('api-key', $c->apiKey());
+    }
+
+    public function testInsecureBaseUrlAllowedForPrivateRangeHosts(): void
+    {
+        foreach (['127.0.0.1', '10.0.0.5', '192.168.1.10', '172.16.0.1', '169.254.0.1'] as $host) {
+            self::assertSame(
+                "http://{$host}",
+                $this->cfg(['serverhostname' => $host])->baseUrl(),
+                "{$host} is private/loopback — http allowed"
+            );
+        }
+    }
+
+    public function testInsecureHttpToPublicHostIsRejected(): void
+    {
+        // Sending the admin Bearer key + user passwords in cleartext to a
+        // public host is a credential-exposure risk: refuse it.
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('HTTPS');
+        $this->cfg(['serverhostname' => 'silo.example.com']);
+    }
+
+    public function testInsecureHttpToPublicIpIsRejected(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->cfg(['serverhostname' => '8.8.8.8']);
     }
 
     public function testSecureBaseUrl(): void
@@ -34,8 +61,8 @@ final class ServerConfigTest extends TestCase
     public function testSchemeAndPathAreStrippedFromHostname(): void
     {
         self::assertSame(
-            'http://host.example',
-            $this->cfg(['serverhostname' => 'https://host.example/admin'])->baseUrl()
+            'http://localhost',
+            $this->cfg(['serverhostname' => 'https://localhost/admin'])->baseUrl()
         );
     }
 
@@ -50,16 +77,16 @@ final class ServerConfigTest extends TestCase
     public function testExplicitServerPortWinsOverEmbedded(): void
     {
         self::assertSame(
-            'http://host.example:8080',
-            $this->cfg(['serverhostname' => 'host.example:9000', 'serverport' => '8080'])->baseUrl()
+            'http://localhost:8080',
+            $this->cfg(['serverhostname' => 'localhost:9000', 'serverport' => '8080'])->baseUrl()
         );
     }
 
     public function testDefaultPortIsOmitted(): void
     {
         self::assertSame(
-            'http://host.example',
-            $this->cfg(['serverport' => '80'])->baseUrl()
+            'http://localhost',
+            $this->cfg(['serverhostname' => 'localhost', 'serverport' => '80'])->baseUrl()
         );
     }
 

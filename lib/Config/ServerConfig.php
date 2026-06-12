@@ -41,6 +41,17 @@ final class ServerConfig
             throw new \InvalidArgumentException('Server admin API key (Password / Access Hash) is required');
         }
         $secure = ($params['serversecure'] ?? '') !== '';
+        // Refuse to send the admin Bearer key and user passwords in
+        // cleartext to a public host. http is tolerated only for
+        // loopback/private-range backends (local dev, LAN), where there's
+        // no untrusted network between WHMCS and Silo.
+        if (!$secure && !self::isLocalOrPrivateHost($host)) {
+            throw new \InvalidArgumentException(
+                "Refusing to use plaintext HTTP to public host '{$host}': enable"
+                . ' the server\'s Secure (SSL/TLS) option so the admin API key and'
+                . ' passwords are sent over HTTPS.'
+            );
+        }
         $scheme = $secure ? 'https://' : 'http://';
         $defaultPort = $secure ? 443 : 80;
 
@@ -53,6 +64,37 @@ final class ServerConfig
         $portSuffix = ($port > 0 && $port !== $defaultPort) ? ':' . $port : '';
 
         return new self($scheme . $host . $portSuffix, $apiKey);
+    }
+
+    /**
+     * Hosts for which plaintext HTTP is acceptable: there is no untrusted
+     * network between WHMCS and the Silo backend. Covers localhost, IPv4
+     * loopback/RFC-1918/link-local, and IPv6 loopback/ULA.
+     */
+    private static function isLocalOrPrivateHost(string $host): bool
+    {
+        $host = strtolower(trim($host, " \t[]"));
+        if ($host === 'localhost' || str_ends_with($host, '.localhost')) {
+            return true;
+        }
+
+        if (filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false) {
+            // Private (10/8, 172.16/12, 192.168/16) and reserved
+            // (loopback 127/8, link-local 169.254/16) ranges are NOT
+            // routable on the public internet.
+            return filter_var(
+                $host,
+                FILTER_VALIDATE_IP,
+                FILTER_FLAG_IPV4 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+            ) === false;
+        }
+
+        if (filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false) {
+            // ::1 loopback and fc00::/7 unique-local addresses.
+            return $host === '::1' || str_starts_with($host, 'fc') || str_starts_with($host, 'fd');
+        }
+
+        return false;
     }
 
     public function baseUrl(): string

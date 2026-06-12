@@ -83,6 +83,16 @@ final class ProductConfigTest extends TestCase
         self::assertFalse(ProductConfig::allowClientResetPassword(['configoption12' => 'no']));
     }
 
+    public function testClientResetCooldownDefaultsTo60AndParses(): void
+    {
+        self::assertSame(60, ProductConfig::clientResetCooldownSeconds([]));
+        self::assertSame(60, ProductConfig::clientResetCooldownSeconds(['configoption13' => '']));
+        self::assertSame(0, ProductConfig::clientResetCooldownSeconds(['configoption13' => '0']));
+        self::assertSame(120, ProductConfig::clientResetCooldownSeconds(['configoption13' => '120']));
+        // A non-numeric typo falls back to the default rather than throwing.
+        self::assertSame(60, ProductConfig::clientResetCooldownSeconds(['configoption13' => 'abc']));
+    }
+
     public function testPlaybackQualityIsCanonicalised(): void
     {
         self::assertSame('1080p', ProductConfig::fromParams(['configoption7' => '720p'])->maxPlaybackQuality());

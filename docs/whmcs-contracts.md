@@ -11,6 +11,15 @@ pre-deploy smoke (Phase 14.2).
 Citation: [WHMCS Module Parameters](https://developers.whmcs.com/provisioning-modules/module-parameters/).
 
 - `serverhostname`, `serversecure`, `serverpassword` set on every hook.
+  **Transport policy:** `ServerConfig::fromParams` now refuses to build a
+  plaintext `http://` base URL for a public host — if `serversecure` is
+  off and the hostname is not loopback/private-range
+  (localhost/`127.`/`10.`/`172.16–31.`/`192.168.`/`169.254.`/IPv6
+  `::1`/`fc00::/7`), it throws `InvalidArgumentException` rather than send
+  the admin key/passwords in the clear. Hooks surface this as a config
+  error (e.g. Test Connection); plaintext is allowed only for LAN/dev
+  backends. TLS peer+host verification is set explicitly on both the cURL
+  and stream transports.
 - `serviceid` present on lifecycle and admin button handlers.
 - `clientsdetails` is an array of client fields (firstname, lastname, email, …).
 - `password` provided on CreateAccount and ChangePassword (cleartext).
@@ -121,9 +130,10 @@ day, unconditionally. If a per-server opt-out becomes necessary, the
 cleanest re-introduction is a per-product config option (the only place
 WHMCS reliably surfaces extra fields). Slot map remains: there is no
 `role` option (every user is provisioned as `user`); `configoption10` /
-`configoption11` / `configoption12` are `delete_on_terminate` /
-`auto_rehome_on_reorder` / `allow_client_reset_password`; the next free
-slot is `configoption13`.
+`configoption11` / `configoption12` / `configoption13` are
+`delete_on_terminate` / `auto_rehome_on_reorder` /
+`allow_client_reset_password` / `client_reset_cooldown`; the next free
+slot is `configoption14`.
 
 ## 8. `UpdateClientProduct` service-credential params + `serverport` — FIXED ✓ (verify pre-deploy)
 
@@ -247,9 +257,13 @@ version:
   `GET /api/v1/admin/sessions` → server-wide playback rows including
   `user_id` and `client_ip`. The handler filters to the linked user and
   surfaces only titles/counts — **`client_ip`/bitrates are never sent to
-  the customer**. Each call degrades independently (a failure blanks only
-  that row, never the page). **Verify:** both endpoints exist and return
-  those shapes; the page renders with one or both unavailable.
+  the customer**. The same `client_ip`/`ip_address` values are also
+  redacted from Silo response bodies before they are written to the WHMCS
+  Module Log (`Client::redactResponseBodyForLog`), so the sessions PII
+  never lands in diagnostics either. Each call degrades independently (a
+  failure blanks only that row, never the page). **Verify:** both
+  endpoints exist and return those shapes; the page renders with one or
+  both unavailable.
 - **Password reset = sign-out-everywhere.** The self-service button is
   gated by `configoption12` (`allow_client_reset_password`, default ON).
   When enabled, it changes the password via admin `updateUser`, which
@@ -257,8 +271,15 @@ version:
   true when `password` is set). The generated password is shown once in
   the returned WHMCS action message and written to the WHMCS service
   password; turn the option OFF when resets should be staff-only.
-  **Verify:** after a client-area reset, a previously-authenticated Silo
-  session is actually rejected — this is the claim shown to the customer.
+  The action is also rate-limited per service: `PasswordResetThrottle`
+  (table `mod_silo_pw_reset`) enforces a cooldown set by `configoption13`
+  (`client_reset_cooldown`, default 60s, 0 disables), so the
+  sign-out-everywhere button can't be spammed into a lockout. The
+  cooldown only records after a *successful* reset, so a failed Silo
+  call doesn't start the timer. **Verify:** after a client-area reset, a
+  previously-authenticated Silo session is actually rejected — this is
+  the claim shown to the customer — and an immediate second reset is
+  refused with a "please wait" message.
 - **Cost.** Up to ~3 admin-API calls per client-area view (`getUser` +
   profiles + sessions; library names stay 24h-cached). `/admin/sessions`
   is server-wide and filtered client-side — fine at normal volume; note
@@ -274,8 +295,9 @@ version:
   non-default server-form port surfaces as `$params['serverport']`.
 - §9: scaffolded configurable options + auto-created custom fields render
   correctly on the order form, and `configoption9` is still "Allow
-  customer-chosen username" while `configoption12` is "Allow client-area
-  password reset" (no `role` option; numbering starts at `library_ids` =
+  customer-chosen username" while `configoption12` / `configoption13` are
+  "Allow client-area password reset" / "Client reset cooldown (seconds)"
+  (no `role` option; numbering starts at `library_ids` =
   `configoption1`).
 - §1: the `enabled`-state assertion. (a) Terminate a service with
   `delete_on_terminate=OFF`, re-order on the **same** server, and confirm

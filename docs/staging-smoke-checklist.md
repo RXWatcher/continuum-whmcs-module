@@ -17,6 +17,8 @@ date at the top of the staging run notes.
   - A second product or temporary product setting with it OFF for retention tests.
   - `Re-home returning customers (multi-server)` ON for the re-home scenario.
   - `Allow client-area password reset` ON, then OFF for the toggle scenario.
+  - `Client reset cooldown (seconds)` left at default 60 for the throttle
+    scenario (and set to 0 once to confirm it disables the cooldown).
 - Enable WHMCS Module Log and Activity Log visibility for the tester.
 - Have a test client account whose Silo sessions/profiles can be created and
   safely reset/deleted.
@@ -27,10 +29,14 @@ Action:
 - Open the WHMCS server configuration for the Silo server.
 - Use **Test Connection** with valid hostname, port, TLS setting, and API key.
 - Repeat once with a deliberately bad API key.
+- Repeat once with **Secure (SSL/TLS) off** against a public hostname.
 
 Pass:
 - Valid settings return success.
 - Bad API key returns an authentication-specific failure.
+- Secure-off against a public host returns a config error telling the
+  operator to enable Secure (the module refuses plaintext to public hosts;
+  loopback/private-range hosts are still allowed over http).
 - Module Log masks the API key.
 
 ## 2. Create Account And Linkage
@@ -90,11 +96,16 @@ Pass:
 Action:
 - With `Allow client-area password reset` ON, use the client-area
   **Reset password & sign out all devices** action.
+- Immediately trigger the action a second time (within the 60s cooldown).
+- Set `Client reset cooldown (seconds)` to 0 and trigger it again.
 - Repeat after setting `Allow client-area password reset` OFF.
 
 Pass:
 - ON: action returns a generated password, WHMCS service password is updated,
   and old Silo sessions are rejected.
+- The immediate second attempt is refused with a "please wait" message and
+  does NOT call Silo (throttled per service via `mod_silo_pw_reset`).
+- With cooldown 0, the back-to-back reset is allowed (throttle disabled).
 - OFF: action returns a disabled/support message and does not change the Silo
   password.
 - The returned message displays correctly in the active WHMCS client theme.
@@ -130,12 +141,17 @@ Pass:
 Action:
 - Set `Delete Silo user on termination` ON.
 - Terminate a test service.
+- Separately: give one client TWO active services that resolve to the same
+  Silo user (same email), then terminate one of them.
 
 Pass:
 - Silo user is deleted.
 - `silo_user_id` is cleared or no longer points to a live user.
 - `mod_silo_home` pointer for that email is removed.
 - Re-running terminate is idempotent/successful when the user is already gone.
+- **Shared user:** when another active service is still linked to the same
+  Silo user, terminate does NOT delete it — it disables the user instead and
+  logs the reason. The sibling service keeps working.
 
 ## 10. Multi-Server Re-Home
 
@@ -165,7 +181,8 @@ Action:
 Pass:
 - Active service shows plan, profile usage, library names, last seen, sign-in
   link, and watching-now titles.
-- `client_ip`, bitrates, and other session PII are never displayed.
+- `client_ip`, bitrates, and other session PII are never displayed, and do
+  not appear in the Module Log either (response bodies are redacted).
 - Profiles failure hides only profile rows.
 - Sessions failure hides only active stream rows.
 - Suspended or status-unavailable views do not call the server-wide sessions

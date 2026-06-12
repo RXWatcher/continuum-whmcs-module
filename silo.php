@@ -124,6 +124,14 @@ function silo_ConfigOptions(): array
                 . ' which shows the generated password once and writes it to the WHMCS service.'
                 . ' OFF: only staff can reset passwords from the admin service page.',
         ],
+        'client_reset_cooldown' => [
+            'FriendlyName' => 'Client reset cooldown (seconds)',
+            'Type' => 'text',
+            'Default' => '60',
+            'Description' => 'Minimum seconds between client-area password resets for one'
+                . ' service. Each reset signs the customer out everywhere, so this stops the'
+                . ' button being spammed into a lockout. Default 60. Set 0 to disable the cooldown.',
+        ],
     ];
 }
 

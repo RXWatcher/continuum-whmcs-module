@@ -21,7 +21,7 @@ final class DailyReconcilerTest extends TestCase
     private array $serverParams = [
         'serverhostname' => 'srv1.example',
         'serverpassword' => 'admin-key',
-        'serversecure' => '',
+        'serversecure' => 'on',
     ];
 
     protected function setUp(): void

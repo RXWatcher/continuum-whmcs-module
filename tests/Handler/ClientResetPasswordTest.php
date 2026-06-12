@@ -34,6 +34,55 @@ final class ClientResetPasswordTest extends TestCase
         self::assertStringContainsString('not linked yet', $result);
     }
 
+    public function testRapidSecondResetIsThrottled(): void
+    {
+        // A recent reset for this service (serviceid 7) is on record →
+        // a fresh attempt must be refused without touching Silo, so the
+        // button can't be spammed to repeatedly sign the customer out.
+        FakeWhmcs::seedTable('mod_silo_pw_reset', [
+            ['relid' => 7, 'last_reset_at' => time()],
+        ]);
+        $client = $this->resolved();
+
+        $result = (new ClientResetPassword(Context::make($client)))->handle($this->params());
+
+        self::assertFalse($client->called('updateUser'), 'throttled — Silo not called');
+        self::assertStringContainsString('wait', strtolower($result));
+    }
+
+    public function testResetAfterCooldownIsAllowed(): void
+    {
+        // An old reset timestamp does not block a new request.
+        FakeWhmcs::seedTable('mod_silo_pw_reset', [
+            ['relid' => 7, 'last_reset_at' => time() - 86400],
+        ]);
+        $client = $this->resolved();
+
+        $result = (new ClientResetPassword(Context::make($client)))->handle($this->params());
+
+        self::assertTrue($client->called('updateUser'));
+        self::assertStringContainsString('new Silo password', $result);
+    }
+
+    public function testCooldownIsConfigurablePerProduct(): void
+    {
+        // configoption13 = 0 disables the throttle: even a reset moments
+        // ago does not block the next one.
+        FakeWhmcs::seedTable('mod_silo_pw_reset', [
+            ['relid' => 7, 'last_reset_at' => time()],
+        ]);
+        $client = $this->resolved();
+
+        $result = (new ClientResetPassword(Context::make($client)))
+            ->handle(Context::params([
+                'configoption13' => '0',
+                'customfields' => ['silo_user_id' => '5'],
+            ]));
+
+        self::assertTrue($client->called('updateUser'), 'cooldown=0 disables throttling');
+        self::assertStringContainsString('new Silo password', $result);
+    }
+
     public function testDisabledByProductConfigDoesNotResetPassword(): void
     {
         $client = $this->resolved();

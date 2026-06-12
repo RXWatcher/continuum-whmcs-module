@@ -23,9 +23,9 @@ final class CreateAccountRehomeTest extends TestCase
         parent::setUp();
         FakeWhmcs::seedTable('tblservers', [
             ['id' => 1, 'type' => 'silo', 'hostname' => 'srv1', 'port' => '',
-             'secure' => 0, 'password' => 'key1', 'disabled' => 0],
+             'secure' => 1, 'password' => 'key1', 'disabled' => 0],
             ['id' => 2, 'type' => 'silo', 'hostname' => 'srv2', 'port' => '',
-             'secure' => 0, 'password' => 'key2', 'disabled' => 0],
+             'secure' => 1, 'password' => 'key2', 'disabled' => 0],
         ]);
         // The service row the move re-points (serviceid 7, on server 1).
         FakeWhmcs::seedTable('tblhosting', [
@@ -196,9 +196,9 @@ final class CreateAccountRehomeTest extends TestCase
     {
         FakeWhmcs::seedTable('tblservers', [
             ['id' => 1, 'type' => 'silo', 'hostname' => 'srv1', 'port' => '',
-             'secure' => 0, 'password' => 'key1', 'disabled' => 0],
+             'secure' => 1, 'password' => 'key1', 'disabled' => 0],
             ['id' => 2, 'type' => 'silo', 'hostname' => 'srv2', 'port' => '',
-             'secure' => 0, 'password' => 'key2', 'disabled' => 1],
+             'secure' => 1, 'password' => 'key2', 'disabled' => 1],
         ]);
         $assigned = new FakeClient();
         $assigned->createUserQueue[] = ['id' => 902];

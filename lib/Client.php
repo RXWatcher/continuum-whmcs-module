@@ -7,10 +7,21 @@ namespace Silo\WhmcsModule;
 use Silo\WhmcsModule\Config\ServerConfig;
 use Silo\WhmcsModule\Silo\ClientInterface;
 
-final class Client implements ClientInterface
+// Not final: the HTTP transport (rawRequest) is a protected seam so tests
+// can drive loadUserList()'s pagination without real network IO.
+class Client implements ClientInterface
 {
     private const TIMEOUT_SECONDS = 30;
     private const CONNECT_TIMEOUT_SECONDS = 10;
+
+    /**
+     * Hard ceiling on pages walked by loadUserList(). A misbehaving Silo
+     * (or a Link header that loops back on itself) must not hang the
+     * WHMCS request forever. Set far above any plausible real list — the
+     * >5000-user warning fires long before this and tells operators to
+     * add a server-side email filter.
+     */
+    private const MAX_USER_PAGES = 1000;
 
     private ServerConfig $cfg;
     /** @var array<int, array<string, mixed>>|null */
@@ -80,7 +91,18 @@ final class Client implements ClientInterface
 
         $all = [];
         $path = '/api/v1/admin/users';
+        $pages = 0;
         while ($path !== null) {
+            if (++$pages > self::MAX_USER_PAGES) {
+                // Fail closed: returning a truncated list here would make
+                // findUserByEmail miss real users and let CreateAccount
+                // create duplicates. An exception fails every caller
+                // safely (strict paths abort, display paths degrade).
+                throw new SiloApiException(
+                    'Silo user list exceeded ' . self::MAX_USER_PAGES
+                    . ' pages — aborting to avoid an unbounded pagination loop'
+                );
+            }
             $res = $this->rawRequest('GET', $path, null);
             $decoded = $res['body'] === '' ? null : json_decode($res['body'], true);
             if ($res['status'] < 100) {
@@ -176,9 +198,27 @@ final class Client implements ClientInterface
     }
 
     /**
+     * Mask PII before a Silo response body is written to the WHMCS Module
+     * Log. The sessions endpoint carries customer IP addresses (and other
+     * endpoints could in future); redact any `client_ip` / `ip_address`
+     * value regardless of which call produced it, so the careful "never
+     * surface client_ip" rule in ClientArea isn't quietly undone by the
+     * diagnostic log. String-level replacement (not decode/encode) so a
+     * truncated or non-JSON body is still scrubbed.
+     */
+    public static function redactResponseBodyForLog(string $body): string
+    {
+        return (string)preg_replace(
+            '/"(client_ip|ip_address|ip)"\s*:\s*"[^"]*"/i',
+            '"$1":"[redacted]"',
+            $body
+        );
+    }
+
+    /**
      * @return array{status: int, body: string, headers: array<string, string[]>}
      */
-    private function rawRequest(string $method, string $path, ?string $body): array
+    protected function rawRequest(string $method, string $path, ?string $body): array
     {
         try {
             $res = function_exists('curl_init')
@@ -209,7 +249,8 @@ final class Client implements ClientInterface
         $request = $method . ' ' . $url . ($body !== null ? "\n" . $body : '');
         $response = $error !== null
             ? 'NETWORK ERROR: ' . $error
-            : 'HTTP ' . $res['status'] . "\n" . substr($res['body'], 0, 5000);
+            : 'HTTP ' . $res['status'] . "\n"
+                . self::redactResponseBodyForLog(substr($res['body'], 0, 5000));
 
         $mask = [$this->cfg->apiKey()];
         if ($body !== null) {
@@ -245,6 +286,11 @@ final class Client implements ClientInterface
             CURLOPT_HEADER => true,
             CURLOPT_TIMEOUT => self::TIMEOUT_SECONDS,
             CURLOPT_CONNECTTIMEOUT => self::CONNECT_TIMEOUT_SECONDS,
+            // Verify the Silo TLS cert and that it matches the host.
+            // These are cURL's defaults; set explicitly so the secure
+            // posture is intentional and can't silently regress.
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
         ]);
         if ($body !== null) {
             curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
@@ -285,6 +331,12 @@ final class Client implements ClientInterface
                 'header' => implode("\r\n", $this->requestHeaders($body !== null)),
                 'ignore_errors' => true,
                 'timeout' => self::TIMEOUT_SECONDS,
+            ],
+            // Verify peer + hostname on HTTPS (PHP's defaults since 5.6;
+            // explicit so the posture matches the cURL path).
+            'ssl' => [
+                'verify_peer' => true,
+                'verify_peer_name' => true,
             ],
         ];
         if ($body !== null) {

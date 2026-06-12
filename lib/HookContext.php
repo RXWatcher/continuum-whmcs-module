@@ -22,6 +22,7 @@ final class HookContext
         private CustomFieldStore $customFields = new CustomFieldStore(),
         private ServerRegistry $servers = new ServerRegistry(),
         private HomeStore $homeStore = new HomeStore(),
+        private PasswordResetThrottle $passwordResetThrottle = new PasswordResetThrottle(),
     ) {
     }
 
@@ -36,6 +37,7 @@ final class HookContext
             new CustomFieldStore(),
             new ServerRegistry(),
             new HomeStore(),
+            new PasswordResetThrottle(),
         );
     }
 
@@ -67,5 +69,10 @@ final class HookContext
     public function homeStore(): HomeStore
     {
         return $this->homeStore;
+    }
+
+    public function passwordResetThrottle(): PasswordResetThrottle
+    {
+        return $this->passwordResetThrottle;
     }
 }

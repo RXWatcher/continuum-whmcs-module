@@ -8,6 +8,7 @@ use Silo\WhmcsModule\Config\ProductConfig;
 use Silo\WhmcsModule\SiloApiException;
 use Silo\WhmcsModule\HookContext;
 use Silo\WhmcsModule\Identity\Params;
+use WHMCS\Database\Capsule;
 
 /**
  * WHMCS TerminateAccount.
@@ -39,6 +40,21 @@ final class TerminateAccount
             return 'success';
         }
 
+        // A single customer can hold several WHMCS services that all
+        // resolve (by email/id) to ONE Silo user. Deleting the user here
+        // would destroy the account the customer's other still-active
+        // service depends on. When a sibling is still active, disable
+        // instead of deleting — same fail-safe as delete_on_terminate=OFF.
+        if ($this->userSharedByAnotherActiveService(Params::serviceId($params), $userId)) {
+            if (function_exists('logActivity')) {
+                logActivity(
+                    'silo: not deleting Silo user ' . $userId . ' on terminate of service '
+                    . Params::serviceId($params) . ' — still in use by another active service; disabling instead'
+                );
+            }
+            return (new SetEnabled($this->ctx))->handle($params, false);
+        }
+
         try {
             $this->ctx->client()->deleteUser($userId);
         } catch (SiloApiException $e) {
@@ -64,5 +80,46 @@ final class TerminateAccount
         $this->ctx->homeStore()->forget(Params::email($params));
 
         return 'success';
+    }
+
+    /**
+     * True if a WHMCS service OTHER than $serviceId is still Active and
+     * linked to the same Silo $userId (via the silo_user_id custom field).
+     * Fails safe to false on any DB trouble: an undetected share falls
+     * back to the legacy delete, which is no worse than before this guard
+     * existed.
+     */
+    private function userSharedByAnotherActiveService(int $serviceId, int $userId): bool
+    {
+        try {
+            $fieldIds = Capsule::table('tblcustomfields')
+                ->where('type', 'product')
+                ->where('fieldname', 'silo_user_id')
+                ->get();
+
+            $siblingServiceIds = [];
+            foreach ($fieldIds as $field) {
+                $values = Capsule::table('tblcustomfieldsvalues')
+                    ->where('fieldid', (int)($field->id ?? 0))
+                    ->where('value', (string)$userId)
+                    ->get();
+                foreach ($values as $v) {
+                    $relid = (int)($v->relid ?? 0);
+                    if ($relid > 0 && $relid !== $serviceId) {
+                        $siblingServiceIds[$relid] = true;
+                    }
+                }
+            }
+
+            foreach (array_keys($siblingServiceIds) as $sid) {
+                $status = Capsule::table('tblhosting')->where('id', $sid)->value('domainstatus');
+                if (strtolower((string)$status) === 'active') {
+                    return true;
+                }
+            }
+        } catch (\Throwable $e) {
+            return false;
+        }
+        return false;
     }
 }

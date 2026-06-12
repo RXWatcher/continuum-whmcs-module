@@ -116,6 +116,7 @@ sells no admin accounts, so role is fixed and not a configurable field.
 | Delete Silo user on termination | **Default ON.** ON: terminating the service permanently deletes the Silo user (profiles + watch history; cannot be undone). OFF: termination only disables the user (data retained; a re-order re-links only if it resolves to the same Silo server — see [Service Lifecycle](#service-lifecycle)). |
 | Re-home returning customers (multi-server) | **Default OFF.** ON: a new order whose user already exists on another configured Silo server moves the service to that server and re-links the existing user instead of creating a fresh account. See [Re-home returning customers](#re-home-returning-customers-multi-server). |
 | Allow client-area password reset | **Default ON.** ON: customers can use the client-area reset action; the generated password is shown once and written to the WHMCS service. OFF: only staff can reset passwords from the admin service page. |
+| Client reset cooldown (seconds) | **Default 60.** Minimum seconds between client-area password resets for one service. Each reset signs the customer out everywhere, so this stops the button being spammed into a lockout. Set `0` to disable the cooldown. |
 
 ### Custom fields (auto-created)
 
@@ -378,7 +379,10 @@ Self-service: a **Reset password & sign out all devices** button when
 change also revokes every session server-side, so this one action both
 rotates the password and signs the customer out everywhere. The generated
 password is shown once in WHMCS and written to the service password; turn
-the option OFF if staff should handle resets instead.
+the option OFF if staff should handle resets instead. The button is
+rate-limited per service (see **Client reset cooldown (seconds)**, default
+60) so it can't be spammed into a sign-out loop — a too-soon retry returns
+a "please wait" message without touching Silo.
 
 Each enrichment (`getUser`, profiles, sessions) degrades **independently** —
 if one Silo call fails the rest of the page still renders. All output is
@@ -512,16 +516,40 @@ publishing the packaged archive — run
   module-specific one. The client-area action additionally shows the new
   password once in the returned confirmation message (so the customer can
   capture it); it is not persisted anywhere else by the module.
-- In the Module Log the API key and payload passwords are masked.
+- In the Module Log the API key and payload passwords are masked, and
+  customer IP addresses (`client_ip` / `ip_address`) in Silo responses — e.g.
+  from the sessions endpoint — are redacted before the body is logged.
 - Passwords are unavoidably cleartext in memory during a request and in transit
   over HTTPS to Silo.
+
+### Transport security
+
+- **HTTPS is required for public Silo hosts.** If a server is configured
+  without the *Secure* (SSL/TLS) option and its hostname is not a
+  loopback/private-range address (localhost, `127.x`, `10.x`, `172.16–31.x`,
+  `192.168.x`, `169.254.x`, IPv6 `::1`/`fc00::/7`), the module refuses to run —
+  it will not send the admin API key or passwords in cleartext to a public
+  host. The Servers-page *Test Connection* button surfaces this as a config
+  error telling the operator to enable Secure. Plaintext HTTP is tolerated only
+  for local/LAN backends where there is no untrusted network in between.
+- TLS peer and hostname verification are enabled explicitly on both the cURL
+  and stream transports.
+
+### Abuse controls
+
+- The client-area "reset password & sign out" action is rate-limited per
+  service (cooldown stored in `mod_silo_pw_reset`) so the button cannot be
+  spammed to repeatedly sign a customer out of every device. The cooldown is
+  set per product via the **Client reset cooldown (seconds)** config option
+  (default 60; set 0 to disable).
 
 ### General
 
 - Store the Silo admin API key only in the WHMCS server Password / Access
   Hash field. Use HTTPS for Silo.
 - Keep `bad_words.txt`, local environment files, and release archives out of
-  git.
+  git. The username profanity filter matches listed words as
+  **substrings** (case-folded), so `fuck` in the list also rejects `fuckers`.
 - Treat WHMCS module/activity logs as sensitive operational context.
 
 ## License

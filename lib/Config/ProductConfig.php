@@ -104,6 +104,22 @@ final class ProductConfig
         return self::readYesNo($params, 'configoption12', true);
     }
 
+    /**
+     * Cooldown (seconds) between client-area password resets for one
+     * service. configoption13, default 60. 0 (or blank treated as
+     * default) — a value of 0 disables the throttle. Read standalone so
+     * a config typo can never block a reset; an invalid value falls back
+     * to the 60s default rather than throwing.
+     */
+    public static function clientResetCooldownSeconds(array $params): int
+    {
+        $raw = trim((string)($params['configoption13'] ?? ''));
+        if ($raw === '') {
+            return 60;
+        }
+        return ctype_digit($raw) ? (int)$raw : 60;
+    }
+
     private static function readYesNo(array $params, string $key, bool $default): bool
     {
         $raw = trim((string)($params[$key] ?? ''));

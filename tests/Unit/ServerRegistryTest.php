@@ -22,7 +22,7 @@ final class ServerRegistryTest extends TestCase
     {
         return [
             'id' => $id, 'type' => 'silo', 'hostname' => "srv{$id}",
-            'port' => '', 'secure' => 0, 'password' => $key, 'disabled' => $disabled,
+            'port' => '', 'secure' => 1, 'password' => $key, 'disabled' => $disabled,
         ];
     }
 

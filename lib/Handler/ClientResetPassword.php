@@ -37,6 +37,17 @@ final class ClientResetPassword
             return 'Your Silo account is not linked yet — contact support.';
         }
 
+        // Each reset signs the customer out everywhere, so rate-limit the
+        // button to stop it being spammed into a self-inflicted lockout.
+        $serviceId = Params::serviceId($params);
+        $cooldown = ProductConfig::clientResetCooldownSeconds($params);
+        $wait = $this->ctx->passwordResetThrottle()->blockedFor($serviceId, $cooldown);
+        if ($wait > 0) {
+            $mins = (int)ceil($wait / 60);
+            $when = $mins <= 1 ? 'a minute' : "{$mins} minutes";
+            return "You just reset your password. Please wait {$when} before trying again.";
+        }
+
         $password = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
 
         try {
@@ -47,6 +58,7 @@ final class ClientResetPassword
         } catch (SiloApiException $e) {
             return 'Could not reset your password right now: ' . $this->humanError($e);
         }
+        $this->ctx->passwordResetThrottle()->record($serviceId);
         $this->ensureLinkage($this->ctx, $params, $userId);
 
         $tail = ' You have been signed out on all devices — sign in again with the new password.';
