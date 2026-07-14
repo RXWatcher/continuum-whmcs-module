@@ -74,11 +74,20 @@ passwords, API credentials, names, or email addresses.
 
 ## Provisioning Flow
 
+Before the canary, discover every active product-122 service that existed before
+the rollout and rename its linked Silo user with
+`ExistingSiloUsernameRenamer`. Store old and new usernames in a separate
+mode-`0600` sensitive journal outside the web root. Do not begin the canary while
+any rename failed or reported a critical Silo/WHMCS mismatch. The observed
+pre-rollout population is two services; execution-time discovery is
+authoritative.
+
 For each candidate, the command performs the following steps independently:
 
 1. Recheck eligibility immediately before creation.
 2. Use WHMCS `AddOrder` for product 122 with a free billing cycle, a zero price
-   override, no invoice, and `noemail` enabled.
+   override, active payment method `stripe_dynamic`, no invoice, and `noemail`
+   enabled. The payment method satisfies the API contract but is never charged.
 3. Inspect the resulting service before taking another provisioning action.
 4. If automatic setup has already activated the service, record success.
 5. If the service remains pending, accept the order with automatic setup enabled

@@ -65,13 +65,15 @@ final class CreateAccountTest extends TestCase
         $client = new FakeClient();
         $client->createUserQueue[] = ['id' => 100];
 
-        $result = (new CreateAccount(Context::make($client)))->handle(Context::params());
+        $result = (new CreateAccount(Context::make($client)))->handle(Context::params([
+            'clientsdetails' => ['firstname' => 'Jim', 'lastname' => 'Cole'],
+        ]));
 
         self::assertSame('success', $result);
         $created = $client->lastCreateUserPayload();
         self::assertNotNull($created);
         self::assertSame('jane@example.com', $created['email']);
-        self::assertNotSame('', (string)$created['username']);
+        self::assertMatchesRegularExpression('/^jcole\d{3}$/', (string)$created['username']);
         self::assertTrue($created['create_default_profile']);
 
         // serviceusername written back to WHMCS via UpdateClientProduct.
@@ -97,15 +99,53 @@ final class CreateAccountTest extends TestCase
         self::assertSame(3, $client->countCalls('createUser'));
     }
 
-    public function testGeneratedUsernameCongestionGivesUpAfterFive(): void
+    public function testNameBasedCollisionsFallBackToRandomUsername(): void
     {
         $client = new FakeClient();
-        $client->createUserQueue = array_fill(0, 5, $this->duplicate());
+        $client->createUserQueue = array_merge(
+            array_fill(0, 10, $this->duplicate()),
+            [['id' => 103]]
+        );
+        $params = Context::params([
+            'clientsdetails' => ['firstname' => 'Jim', 'lastname' => 'Cole'],
+        ]);
+
+        $result = (new CreateAccount(Context::make($client)))->handle($params);
+
+        self::assertSame('success', $result);
+        self::assertSame(11, $client->countCalls('createUser'));
+        self::assertMatchesRegularExpression(
+            '/^[a-z]{4}\d{3}$/',
+            (string)$client->lastCreateUserPayload()['username']
+        );
+    }
+
+    public function testMissingSurnameUsesRandomUsername(): void
+    {
+        $client = new FakeClient();
+        $client->createUserQueue[] = ['id' => 104];
 
         $result = (new CreateAccount(Context::make($client)))->handle(Context::params());
 
+        self::assertSame('success', $result);
+        self::assertMatchesRegularExpression(
+            '/^[a-z]{4}\d{3}$/',
+            (string)$client->lastCreateUserPayload()['username']
+        );
+    }
+
+    public function testGeneratedUsernameCongestionGivesUpAfterAllAttempts(): void
+    {
+        $client = new FakeClient();
+        $client->createUserQueue = array_fill(0, 15, $this->duplicate());
+        $params = Context::params([
+            'clientsdetails' => ['firstname' => 'Jim', 'lastname' => 'Cole'],
+        ]);
+
+        $result = (new CreateAccount(Context::make($client)))->handle($params);
+
         self::assertStringContainsString('congested', $result);
-        self::assertSame(5, $client->countCalls('createUser'));
+        self::assertSame(15, $client->countCalls('createUser'));
     }
 
     public function testChosenUsernameRejectedWhenAlreadyTaken(): void

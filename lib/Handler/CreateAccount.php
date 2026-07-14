@@ -132,8 +132,20 @@ final class CreateAccount
                 // username was set above
             }
         } else {
-            for ($attempt = 1; $attempt <= 5; $attempt++) {
-                $username = UsernameGenerator::generate();
+            $firstName = (string)($params['clientsdetails']['firstname'] ?? '');
+            $lastName = (string)($params['clientsdetails']['lastname'] ?? '');
+            $nameCandidate = UsernameGenerator::generateFromName($firstName, $lastName);
+            $maxAttempts = $nameCandidate === null ? 5 : 15;
+
+            for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+                if ($nameCandidate !== null && $attempt <= 10) {
+                    $username = $attempt === 1
+                        ? $nameCandidate
+                        : (UsernameGenerator::generateFromName($firstName, $lastName)
+                            ?? UsernameGenerator::generate());
+                } else {
+                    $username = UsernameGenerator::generate();
+                }
                 try {
                     $user = $this->ctx->client()->createUser($build($username));
                     break;
@@ -153,7 +165,7 @@ final class CreateAccount
                 }
             }
             if ($user === null) {
-                return 'Username namespace congested — 5 collisions in a row.'
+                return "Username namespace congested — {$maxAttempts} collisions in a row."
                     . ' Retry the order, or contact support if this persists.';
             }
         }

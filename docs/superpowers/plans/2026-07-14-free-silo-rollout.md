@@ -16,6 +16,10 @@
 - New services use billing cycle `Free` with first and recurring amounts of `0.00`.
 - Provision immediately and preserve every existing Emby service unchanged.
 - Generate no invoice and send no order, invoice, welcome, or module email.
+- Use active payment method `stripe_dynamic`, required by `AddOrder`; no charge or
+  invoice is created.
+- Rename all pre-rollout active product-122 users with
+  `ExistingSiloUsernameRenamer` before the canary and block on any mismatch.
 - Process a canary first and never retry an ambiguous failure automatically.
 - Audit numeric IDs and results only; never log names, email addresses, passwords, or credentials.
 
@@ -52,6 +56,7 @@ $policy = new FreeSiloRolloutPolicy(122, 123);
 self::assertSame([10, 12], $policy->eligibleClientIds([12, 10, 12, 14], [14]));
 self::assertSame([
     'clientid' => 10,
+    'paymentmethod' => 'stripe_dynamic',
     'pid' => [122],
     'billingcycle' => ['free'],
     'priceoverride' => ['0.00'],
@@ -138,7 +143,7 @@ Load `/opt/whmcs/init.php` and the deployed module autoloader. Query distinct ac
 
 - [ ] **Step 6: Implement serial provisioning**
 
-For canary and full modes, recheck eligibility immediately before `localAPI('AddOrder', $policy->addOrderParams($clientId))`. Require `result=success`, exactly one positive service ID from `productids`, and a positive order ID. Inspect the service; if pending, call `AcceptOrder` once with `acceptOrderParams()`. Inspect again, append all `serviceErrors()`, and never repeat a module action for an ambiguous result.
+For canary and full modes, recheck eligibility immediately before `localAPI('AddOrder', $policy->addOrderParams($clientId))`. Require `result=success`, exactly one positive service ID from `serviceids`, and a positive order ID. Inspect the service; if pending, call `AcceptOrder` once with `acceptOrderParams()`. Inspect again, append all `serviceErrors()`, and never repeat a module action for an ambiguous result.
 
 `--execute-canary` snapshots product 122, renames only its `name` field to `S - Service`, provisions exactly one eligible client, records its IDs, and exits. `--execute-all` calls `assertFullRunAllowed()` before writes and recomputes eligibility before each client.
 
@@ -183,6 +188,11 @@ Copy only the tested script, policy, and module autoloader dependency under `/ro
 Expected: current aggregate counts are reported while database rows, email log, mail queue, state, and audit remain unchanged.
 
 - [ ] **Step 3: Execute one canary**
+
+Before provisioning the canary, discover all active product-122 services that
+predate the rollout and rename them through `ExistingSiloUsernameRenamer`. Write
+old/new usernames only to a separate mode-`0600` sensitive journal. Require every
+rename to succeed with `critical_mismatch=false`; otherwise stop.
 
 Run `php /root/silo-rollout/free-silo-rollout.php --execute-canary`.
 
