@@ -9,8 +9,8 @@
 
       <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:1rem 1.25rem; background:#111827; color:#fff;">
         <div>
-          <div style="font-size:1.05rem; font-weight:600;">Your Silo service</div>
-          {if $username}<div style="font-size:0.85rem; opacity:0.75; margin-top:0.15rem;">@{$username|escape:'html'}</div>{/if}
+          <div style="font-size:1.05rem; font-weight:600;">Your Silo account</div>
+          {if $username}<div style="font-size:0.85rem; opacity:0.75; margin-top:0.15rem;">Username: <strong>{$username|escape:'html'}</strong></div>{/if}
         </div>
         {if $status == 'active'}
           <span style="font-size:0.8rem; background:#065f46; padding:0.25rem 0.6rem; border-radius:999px;">&#9679; Active</span>

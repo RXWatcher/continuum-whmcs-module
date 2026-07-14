@@ -39,6 +39,20 @@ final class CreateAccountTest extends TestCase
         self::assertTrue($payload['enabled'], 'enabled must be asserted true');
     }
 
+    public function testExistingAdminRoleIsNeverDowngradedDuringProvisioning(): void
+    {
+        $client = new FakeClient();
+        $client->usersById[42] = ['id' => 42, 'role' => 'admin'];
+        $params = Context::params(['customfields' => ['silo_user_id' => '42']]);
+
+        $result = (new CreateAccount(Context::make($client)))->handle($params);
+
+        self::assertSame('success', $result);
+        $payload = $client->lastUpdateUserPayload();
+        self::assertNotNull($payload);
+        self::assertArrayNotHasKey('role', $payload);
+    }
+
     public function testExistingUserReLinkSyncsServiceUsernameBackToWhmcs(): void
     {
         // On re-link, the Silo username is authoritative — write it back

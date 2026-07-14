@@ -64,7 +64,7 @@ final class CreateAccount
                 // omitted `enabled` leaves the stale disabled state intact.
                 $updated = $this->ctx->client()->updateUser(
                     $existingId,
-                    array_merge($attrs, ['enabled' => true], $this->syncFields($params))
+                    array_merge($this->withoutRole($attrs), ['enabled' => true], $this->syncFields($params))
                 );
             } catch (SiloApiException $e) {
                 return $this->humanError($e);
@@ -214,7 +214,7 @@ final class CreateAccount
 
         try {
             $home['client']->updateUser($home['userId'], array_merge(
-                $attrs,
+                $this->withoutRole($attrs),
                 ['enabled' => true],
                 $this->syncFields($params)
             ));
@@ -235,6 +235,13 @@ final class CreateAccount
             );
         }
         return 'success';
+    }
+
+    /** @param array<string, mixed> $attrs @return array<string, mixed> */
+    private function withoutRole(array $attrs): array
+    {
+        unset($attrs['role']);
+        return $attrs;
     }
 
     /**

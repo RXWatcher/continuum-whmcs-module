@@ -217,12 +217,7 @@ function silo_AdminServicesTabFields(array $params): array
 
 function silo_ClientAreaCustomButtonArray(): array
 {
-    // The sign-in link is rendered inside the ClientArea template; this
-    // exposes the one self-service action. A Silo password change
-    // also revokes all sessions, so this is "reset + sign out everywhere".
-    return [
-        'Reset password & sign out all devices' => 'clientarea_resetpw',
-    ];
+    return [];
 }
 
 function silo_clientarea_resetpw(array $params): string
