@@ -55,12 +55,14 @@ The normal product pricing remains available for the later paid migration.
 
 Use a temporary CLI-only PHP rollout command outside the web root. It loads the
 WHMCS runtime, queries through Capsule, and creates services through the WHMCS
-local API. It supports three explicit modes:
+local API. It supports four explicit modes:
 
 - `--dry-run`: default; makes no changes and prints aggregate counts plus client
   IDs only.
 - `--execute-canary`: performs the approved rename and provisions exactly one
   eligible client, then stops for verification.
+- `--verify-canary`: rechecks the canary service and email log after the operator
+  confirms the mail queue is clear, then records the verified-canary state.
 - `--execute-all`: provisions the remaining eligible clients only after the
   canary has been recorded as verified.
 
