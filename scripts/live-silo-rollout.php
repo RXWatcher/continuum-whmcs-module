@@ -243,7 +243,7 @@ if ($clientMode) {
 
 $runState = state();
 renameExisting($runState);
-Capsule::table('tblproducts')->where('id', PRODUCT_ID)->update(['name' => 'S - Service']);
+Capsule::table('tblproducts')->where('id', PRODUCT_ID)->update(['name' => 'S - 3 Concurrent']);
 
 if ($mode === '--canary') {
     if (($runState['canary_complete'] ?? false) === true) {

@@ -34,6 +34,8 @@ final class ClientAreaTest extends TestCase
             'id' => 5,
             'max_streams' => 4,
             'max_playback_quality' => '2160p',
+            'download_allowed' => true,
+            'download_transcode_allowed' => false,
             'enabled' => true,
             'library_ids' => null, // unrestricted
         ];
@@ -43,6 +45,8 @@ final class ClientAreaTest extends TestCase
         self::assertSame('active', $vars['status']);
         self::assertSame(4, $vars['stream_limit']);
         self::assertSame('Up to 4K', $vars['quality']);
+        self::assertSame('Allowed', $vars['downloads']);
+        self::assertSame('Not allowed', $vars['transcoded_downloads']);
         self::assertSame(['All libraries'], $vars['library_names']);
         self::assertSame('https://silo.test/', $vars['login_url']);
     }

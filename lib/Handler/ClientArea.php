@@ -35,6 +35,7 @@ final class ClientArea
             'transcode_limit' => null,
             'profile_limit' => null,
             'downloads' => null,
+            'transcoded_downloads' => null,
             'quality' => 'Unrestricted',
             'profiles_used' => null,
             'profile_names' => [],
@@ -54,6 +55,9 @@ final class ClientArea
             $vars['profile_limit'] = (int)($user['max_profiles'] ?? 0);
             $vars['quality'] = $this->humanQuality((string)($user['max_playback_quality'] ?? ''));
             $vars['downloads'] = ($user['download_allowed'] ?? false) ? 'Allowed' : 'Not allowed';
+            $vars['transcoded_downloads'] = ($user['download_transcode_allowed'] ?? false)
+                ? 'Allowed'
+                : 'Not allowed';
             $vars['member_since'] = $this->humanDate((string)($user['created_at'] ?? ''));
             if (!($user['enabled'] ?? true)) {
                 $vars['status'] = 'suspended';

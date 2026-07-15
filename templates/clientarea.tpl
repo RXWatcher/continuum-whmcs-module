@@ -26,7 +26,8 @@
         {if $transcode_limit !== null}<div><div style="font-size:0.75rem; color:#6b7280; text-transform:uppercase; letter-spacing:0.03em;">Transcodes</div><div style="font-weight:600;">{$transcode_limit|intval}</div></div>{/if}
         {if $profile_limit !== null}<div><div style="font-size:0.75rem; color:#6b7280; text-transform:uppercase; letter-spacing:0.03em;">Profile slots</div><div style="font-weight:600;">{if $profiles_used !== null}{$profiles_used|intval} / {/if}{$profile_limit|intval}</div></div>{/if}
         <div><div style="font-size:0.75rem; color:#6b7280; text-transform:uppercase; letter-spacing:0.03em;">Quality</div><div style="font-weight:600;">{$quality|escape:'html'}</div></div>
-        {if $downloads !== null}<div><div style="font-size:0.75rem; color:#6b7280; text-transform:uppercase; letter-spacing:0.03em;">Downloads</div><div style="font-weight:600;">{$downloads|escape:'html'}</div></div>{/if}
+        {if $downloads !== null}<div><div style="font-size:0.75rem; color:#6b7280; text-transform:uppercase; letter-spacing:0.03em;">Original downloads</div><div style="font-weight:600;">{$downloads|escape:'html'}</div></div>{/if}
+        {if $transcoded_downloads !== null}<div><div style="font-size:0.75rem; color:#6b7280; text-transform:uppercase; letter-spacing:0.03em;">Transcoded downloads</div><div style="font-weight:600;">{$transcoded_downloads|escape:'html'}</div></div>{/if}
         <div><div style="font-size:0.75rem; color:#6b7280; text-transform:uppercase; letter-spacing:0.03em;">Last seen</div><div style="font-weight:600;">{$last_seen_relative|escape:'html'}</div></div>
         {if $member_since}<div><div style="font-size:0.75rem; color:#6b7280; text-transform:uppercase; letter-spacing:0.03em;">Member since</div><div style="font-weight:600;">{$member_since|escape:'html'}</div></div>{/if}
       </div>
